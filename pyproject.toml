@@ -1,0 +1,12 @@
+[project]
+name = "skripsi"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "earthengine-api>=1.7.25",
+    "numpy>=2.4.4",
+    "requests>=2.33.1",
+    "whitebox>=2.3.6",
+]

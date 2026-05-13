@@ -1,0 +1,79 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.coverage
+htmlcov/
+
+# Build and packaging output
+build/
+dist/
+wheels/
+*.egg-info/
+
+# Virtual environments
+.venv/
+.venv314/
+venv/
+env/
+
+# uv / local Python tooling
+.python-version
+
+# Environment and secrets
+.env
+.env.*
+*.pem
+*.key
+*.credentials.json
+service-account*.json
+
+# Notebooks and interactive work
+.ipynb_checkpoints/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Local logs and temporary files
+*.log
+tmp/
+temp/
+
+# Generated DEMNAS exports
+DEMNAS_Exports/
+
+# Large local geospatial datasets and derived artifacts
+dataset/satelit raw/
+dataset/indonesia-geospasial.com DEMNAS_sumatera/
+dataset/DEMNAS_Exports/
+dataset/DEMNAS_warped_to_sentinel/
+dataset/features_preprocessed/
+dataset/labels_unosat_rasterized/
+dataset/tiles/
+dataset/**/zip_output/
+dataset/unosat/*.zip
+dataset/unosat/*.gdb/
+*.npz
+*.tif
+*.tiff
+*.jp2
+*.ovr
+*.aux.xml
+*.vrt
+*.qgz
+*.qgs~
+*.gpkg
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
