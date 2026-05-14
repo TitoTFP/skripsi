@@ -17,12 +17,8 @@ wheels/
 
 # Virtual environments
 .venv/
-.venv314/
 venv/
 env/
-
-# uv / local Python tooling
-.python-version
 
 # Environment and secrets
 .env

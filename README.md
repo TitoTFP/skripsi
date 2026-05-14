@@ -368,7 +368,7 @@ dataset/preprocessing_verification_report.csv
 ### Feature preprocessing
 
 ```bash
-.venv314/bin/python -m scripts.preprocess_features
+uv run python -m scripts.preprocess_features
 ```
 
 Creates:
@@ -381,7 +381,7 @@ dataset/feature_preprocessing_summary.csv
 ### Tile generation
 
 ```bash
-.venv314/bin/python -m scripts.make_tiles
+uv run python -m scripts.make_tiles
 ```
 
 Creates:
@@ -394,7 +394,7 @@ dataset/preprocessing_summary.csv
 ### ProCANet tile generation
 
 ```bash
-.venv314/bin/python -m scripts.make_procanet_tiles
+uv run python -m scripts.make_procanet_tiles
 ```
 
 Creates:
@@ -412,7 +412,7 @@ procanet_tile_counts {'train': 983, 'val': 36, 'test': 102}
 ### Verification
 
 ```bash
-.venv314/bin/python -m scripts.verify_preprocessing
+uv run python -m scripts.verify_preprocessing
 ```
 
 Expected output:
@@ -425,7 +425,7 @@ tile_counts {'train': 983, 'val': 36, 'test': 102}
 ### Unit tests
 
 ```bash
-.venv314/bin/python -m unittest tests.test_preprocessing_helpers tests.test_training_data tests.test_models tests.test_training_loop -v
+uv run python -m unittest tests.test_preprocessing_helpers tests.test_training_data tests.test_models tests.test_training_loop -v
 ```
 
 Expected:
@@ -440,13 +440,13 @@ OK
 Baseline U-Net:
 
 ```bash
-.venv314/bin/python -m scripts.train_segmentation --architecture unet
+uv run python -m scripts.train_segmentation --architecture unet
 ```
 
 ProCANet:
 
 ```bash
-.venv314/bin/python -m scripts.train_segmentation --architecture procanet
+uv run python -m scripts.train_segmentation --architecture procanet
 ```
 
 Default training uses AdamW, `25` epochs, batch size `2`, learning rate `1e-4`,
@@ -473,7 +473,7 @@ runs/{architecture}/config.json
 Useful overrides:
 
 ```bash
-.venv314/bin/python -m scripts.train_segmentation \
+uv run python -m scripts.train_segmentation \
   --architecture unet \
   --epochs 50 \
   --batch-size 4 \
@@ -502,21 +502,21 @@ earthengine-api
 requests
 ```
 
-GDAL Python bindings come from the system Python environment in this workspace.
-The working runtime used for preprocessing is:
+Runtime uses `uv` with Python 3.14. GDAL Python bindings come from the system
+Python environment in this workspace, so the local uv environment must keep
+system site packages visible.
 
 ```text
-.venv314/bin/python
+uv run python
 ```
 
-This venv was created with system site packages so it can access system GDAL and
-NumPy while also installing `whitebox`.
+The project pins Python 3.14 in `.python-version` and `pyproject.toml`.
 
 If recreating locally:
 
 ```bash
-uv venv --python /usr/bin/python --system-site-packages .venv314
-uv pip install --python .venv314/bin/python whitebox
+uv venv --python /usr/bin/python3.14 --system-site-packages .venv
+uv sync
 ```
 
 ## Repository Layout
