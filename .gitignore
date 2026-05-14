@@ -77,3 +77,7 @@ dataset/unosat/*.gdb/
 *.dbf
 *.prj
 *.cpg
+
+
+# Documents
+docs/

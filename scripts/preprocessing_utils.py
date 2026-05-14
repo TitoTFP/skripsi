@@ -7,6 +7,8 @@ from osgeo import gdal
 
 
 CHANNELS_7CH = ("VV", "VH", "Hue", "Saturation", "Value", "Slope", "HAND")
+PROCANET_ENCODER1_CHANNELS = CHANNELS_7CH
+PROCANET_ENCODER2_CHANNELS = ("VV", "VH")
 TILE_SIZE = 512
 VALID_COVERAGE_THRESHOLD = 0.70
 BAD_S2_REGIONS = {"Aceh_Tamiang", "Agam", "Langsa", "Pasaman_Barat"}
@@ -73,6 +75,14 @@ def should_keep_tile(
     if bool(np.any(flood)):
         return True
     return bool(label_valid.mean() >= threshold and feature_valid.mean() >= threshold)
+
+
+def split_procanet_encoders(stack: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    if stack.shape[0] != len(CHANNELS_7CH):
+        raise ValueError(f"expected {len(CHANNELS_7CH)} channels, got {stack.shape[0]}")
+    encoder1 = stack
+    encoder2 = stack[: len(PROCANET_ENCODER2_CHANNELS)]
+    return encoder1, encoder2
 
 
 def read_band(path: Path | str, band_index: int = 1) -> np.ndarray:

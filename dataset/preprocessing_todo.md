@@ -71,7 +71,10 @@ water_river=1 -> optional exclusion/control mask, not main target
 - [x] Filter/atur jumlah tile background-only agar kelas tidak terlalu imbalance.
 - [x] Split train/validation/test secara spasial atau per wilayah.
 - [x] Simpan dataset siap training untuk U-Net.
-- [ ] Simpan dataset siap training untuk ProCANet dua encoder bila diperlukan.
+- [x] Simpan dataset siap training untuk ProCANet dua encoder.
+  - Encoder 1: `VV`, `VH`, `Hue`, `Saturation`, `Value`, `Slope`, `HAND`
+  - Encoder 2: `VV`, `VH`
+  - Output: `dataset/tiles/procanet/`
 - [x] Buat ringkasan statistik final tile:
   - jumlah tile
   - jumlah flood pixel
@@ -86,6 +89,7 @@ dataset/DEMNAS_warped_to_sentinel/
 dataset/labels_unosat_rasterized/
 dataset/features_preprocessed/
 dataset/tiles/7ch/
+dataset/tiles/procanet/
 dataset/preprocessing_summary.csv
 dataset/feature_preprocessing_summary.csv
 dataset/preprocessing_verification_report.csv
