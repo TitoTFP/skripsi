@@ -425,14 +425,43 @@ tile_counts {'train': 983, 'val': 36, 'test': 102}
 ### Unit tests
 
 ```bash
-.venv314/bin/python -m unittest tests.test_preprocessing_helpers tests.test_training_data -v
+.venv314/bin/python -m unittest tests.test_preprocessing_helpers tests.test_training_data tests.test_models tests.test_training_loop -v
 ```
 
 Expected:
 
 ```text
-Ran 13 tests
+Ran 20 tests
 OK
+```
+
+### Training
+
+Baseline U-Net:
+
+```bash
+.venv314/bin/python -m scripts.train_segmentation --architecture unet
+```
+
+ProCANet:
+
+```bash
+.venv314/bin/python -m scripts.train_segmentation --architecture procanet
+```
+
+Default training uses AdamW, `25` epochs, batch size `2`, learning rate `1e-4`,
+weight decay `1e-4`, and auto-selects CUDA when available. Best checkpoints are
+saved by validation IoU:
+
+```text
+runs/unet/best.pt
+runs/procanet/best.pt
+```
+
+Per-epoch metrics are written to:
+
+```text
+runs/{architecture}/metrics.csv
 ```
 
 ## Environment
@@ -489,9 +518,19 @@ uv pip install --python .venv314/bin/python whitebox
 │   ├── preprocess_features.py
 │   ├── make_tiles.py
 │   ├── make_procanet_tiles.py
+│   ├── train_segmentation.py
 │   └── verify_preprocessing.py
+├── training/
+│   ├── datasets.py
+│   ├── losses.py
+│   ├── metrics.py
+│   ├── train.py
+│   └── models/
 ├── tests/
-│   └── test_preprocessing_helpers.py
+│   ├── test_preprocessing_helpers.py
+│   ├── test_training_data.py
+│   ├── test_models.py
+│   └── test_training_loop.py
 ├── pyproject.toml
 └── README.md
 ```
@@ -502,6 +541,8 @@ Large raw and generated geospatial artifacts are ignored by `.gitignore`.
 
 - Current tile dataset is ready for U-Net style single-input 7-channel models.
 - ProCANet two-encoder export is ready under `dataset/tiles/procanet/`.
+- Baseline U-Net and ProCANet implementations output binary segmentation logits.
+- Training checkpoints are selected by validation IoU, not validation loss.
 - ProCANet encoder design intentionally repeats SAR (`VV/VH`) in encoder 2 because
   SAR is the most reliable water/flood modality under cloud and rain conditions.
 - S2 invalid regions are intentionally kept with HSV zeroed.

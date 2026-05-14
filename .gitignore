@@ -47,6 +47,7 @@ Thumbs.db
 *.log
 tmp/
 temp/
+runs/
 
 # Generated DEMNAS exports
 DEMNAS_Exports/

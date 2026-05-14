@@ -88,17 +88,18 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
   - Augmentasi hanya untuk split train.
   - Implemented in `training.augmentations`.
 
-- [ ] Implementasi baseline U-Net.
+- [x] Implementasi baseline U-Net.
   - Model menerima tensor 7-channel.
   - Output segmentasi biner flood/non-flood.
   - Simpan checkpoint terbaik berdasarkan validation loss atau validation IoU/F1.
+  - Checkpoint terbaik dipilih dengan validation IoU.
 
-- [ ] Implementasi ProCANet.
+- [x] Implementasi ProCANet.
   - Dua encoder sesuai proposal.
   - Progressive cross-attention block pada beberapa level resolusi.
   - Decoder menghasilkan mask segmentasi biner.
 
-- [ ] Implementasi loss function.
+- [x] Implementasi loss function.
   - Minimal Dice Loss sesuai proposal.
   - Pastikan masking `label_valid_mask` diterapkan dalam loss.
   - Opsional: BCE + Dice untuk stabilitas training.
@@ -107,6 +108,7 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
   - Optimizer AdamW.
   - Learning rate, batch size, epoch, weight decay, early stopping.
   - Logging train/validation loss dan metrik.
+  - Partial: training CLI tersedia di `scripts.train_segmentation`; early stopping belum ditambahkan.
 
 - [ ] Training baseline U-Net.
   - Jalankan training pada split train.

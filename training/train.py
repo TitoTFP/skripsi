@@ -1,0 +1,121 @@
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+import torch
+from torch.utils.data import DataLoader
+
+from training.losses import masked_bce_dice_loss
+from training.metrics import masked_binary_stats
+
+
+def train_one_epoch(
+    model: torch.nn.Module,
+    loader: DataLoader,
+    optimizer: torch.optim.Optimizer,
+    device: torch.device,
+    max_batches: int | None = None,
+) -> dict[str, float]:
+    model.train()
+    total_loss = 0.0
+    batches = 0
+    stats = {"tp": 0, "tn": 0, "fp": 0, "fn": 0}
+    for batch in loader:
+        features = _to_device(batch["features"], device)
+        y = batch["y"].to(device)
+        valid_mask = batch["valid_mask"].to(device)
+
+        optimizer.zero_grad(set_to_none=True)
+        logits = model(features)
+        loss = masked_bce_dice_loss(logits, y, valid_mask)
+        loss.backward()
+        optimizer.step()
+
+        total_loss += float(loss.detach().cpu())
+        _accumulate(stats, masked_binary_stats(logits.detach(), y, valid_mask))
+        batches += 1
+        if max_batches is not None and batches >= max_batches:
+            break
+    return _summarize(total_loss, batches, stats)
+
+
+@torch.no_grad()
+def evaluate(
+    model: torch.nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    max_batches: int | None = None,
+) -> dict[str, float]:
+    model.eval()
+    total_loss = 0.0
+    batches = 0
+    stats = {"tp": 0, "tn": 0, "fp": 0, "fn": 0}
+    for batch in loader:
+        features = _to_device(batch["features"], device)
+        y = batch["y"].to(device)
+        valid_mask = batch["valid_mask"].to(device)
+        logits = model(features)
+        loss = masked_bce_dice_loss(logits, y, valid_mask)
+        total_loss += float(loss.detach().cpu())
+        _accumulate(stats, masked_binary_stats(logits, y, valid_mask))
+        batches += 1
+        if max_batches is not None and batches >= max_batches:
+            break
+    return _summarize(total_loss, batches, stats)
+
+
+def save_checkpoint_if_best(
+    model: torch.nn.Module,
+    optimizer: torch.optim.Optimizer,
+    output_dir: Path | str,
+    epoch: int,
+    val_iou: float,
+    best_val_iou: float,
+    architecture: str,
+    config: dict[str, Any],
+) -> tuple[float, bool]:
+    if val_iou <= best_val_iou:
+        return best_val_iou, False
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    checkpoint = {
+        "model_state_dict": model.state_dict(),
+        "optimizer_state_dict": optimizer.state_dict(),
+        "epoch": epoch,
+        "best_val_iou": val_iou,
+        "architecture": architecture,
+        "config": config,
+    }
+    torch.save(checkpoint, output_dir / "best.pt")
+    return val_iou, True
+
+
+def _to_device(value: Any, device: torch.device) -> Any:
+    if isinstance(value, torch.Tensor):
+        return value.to(device)
+    if isinstance(value, dict):
+        return {key: _to_device(item, device) for key, item in value.items()}
+    return value
+
+
+def _accumulate(total: dict[str, int], update: dict[str, int]) -> None:
+    for key in total:
+        total[key] += update[key]
+
+
+def _summarize(total_loss: float, batches: int, stats: dict[str, int]) -> dict[str, float]:
+    tp = stats["tp"]
+    tn = stats["tn"]
+    fp = stats["fp"]
+    fn = stats["fn"]
+    iou_den = tp + fp + fn
+    dice_den = (2 * tp) + fp + fn
+    total = tp + tn + fp + fn
+    return {
+        "loss": total_loss / max(batches, 1),
+        "iou": tp / iou_den if iou_den else 0.0,
+        "dice": (2 * tp) / dice_den if dice_den else 0.0,
+        "accuracy": (tp + tn) / total if total else 0.0,
+    }
