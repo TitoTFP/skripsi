@@ -425,13 +425,13 @@ tile_counts {'train': 983, 'val': 36, 'test': 102}
 ### Unit tests
 
 ```bash
-.venv314/bin/python -m unittest tests.test_preprocessing_helpers -v
+.venv314/bin/python -m unittest tests.test_preprocessing_helpers tests.test_training_data -v
 ```
 
 Expected:
 
 ```text
-Ran 7 tests
+Ran 13 tests
 OK
 ```
 
@@ -448,6 +448,7 @@ Important packages:
 
 ```text
 numpy
+torch
 whitebox
 earthengine-api
 requests
@@ -512,18 +513,31 @@ Large raw and generated geospatial artifacts are ignored by `.gitignore`.
 ## Minimal PyTorch Loading Example
 
 ```python
-from pathlib import Path
+from torch.utils.data import DataLoader
 
-import numpy as np
-import torch
+from training.datasets import FloodTileDataset
+from training.losses import masked_bce_with_logits
+from training.metrics import masked_iou
 
-tile = Path("dataset/tiles/7ch/train/Aceh_Timur_r000000_c000000.npz")
-data = np.load(tile)
+dataset = FloodTileDataset("train", architecture="unet")
+loader = DataLoader(dataset, batch_size=2, shuffle=True)
+batch = next(iter(loader))
 
-x = torch.from_numpy(data["x"]).float()
-y = torch.from_numpy(data["y"]).float()
-valid_mask = torch.from_numpy(data["valid_mask"]).bool()
+x = batch["features"]              # 2 x 7 x 512 x 512
+y = batch["y"]                     # 2 x 1 x 512 x 512
+valid_mask = batch["valid_mask"]   # 2 x 1 x 512 x 512
 
-# Example masked BCE loss usage:
-# loss = bce(logits[valid_mask], y[valid_mask])
+# logits = model(x)
+# loss = masked_bce_with_logits(logits, y, valid_mask)
+# iou = masked_iou(logits, y, valid_mask)
+```
+
+ProCANet loader:
+
+```python
+dataset = FloodTileDataset("train", architecture="procanet")
+batch = next(iter(DataLoader(dataset, batch_size=2, shuffle=True)))
+
+x1 = batch["features"]["encoder1"]  # 2 x 7 x 512 x 512
+x2 = batch["features"]["encoder2"]  # 2 x 2 x 512 x 512
 ```

@@ -75,16 +75,18 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
   - Narasi final perlu diganti: UNOSAT dipakai sebagai proxy label utama untuk flood segmentation.
   - Jelaskan `FloodExtent_*` sebagai flood positif, `AnalysisExtent_*` sebagai valid mask, dan `WaterExtent_*`/river sebagai auxiliary mask.
 
-- [ ] Implementasi dataset loader training.
+- [x] Implementasi dataset loader training.
   - Loader U-Net perlu membaca `.npz` tile dari `dataset/tiles/7ch/`.
   - Loader ProCANet perlu membaca `.npz` tile dari `dataset/tiles/procanet/`.
   - Loader perlu mengembalikan feature tensor, `y`, `valid_mask`, dan metadata.
   - Loss dan metrik wajib mengabaikan piksel dengan `valid_mask=0`.
+  - Implemented in `training.datasets`, `training.losses`, and `training.metrics`.
 
-- [ ] Implementasi augmentasi data dinamis.
+- [x] Implementasi augmentasi data dinamis.
   - Rotasi 90/180/270 derajat.
   - Flip horizontal dan vertikal.
   - Augmentasi hanya untuk split train.
+  - Implemented in `training.augmentations`.
 
 - [ ] Implementasi baseline U-Net.
   - Model menerima tensor 7-channel.
