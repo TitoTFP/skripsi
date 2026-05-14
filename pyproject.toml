@@ -6,7 +6,12 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "earthengine-api>=1.7.25",
+    "ipykernel>=7.2.0",
+    "jupyter-collaboration==4.0.2",
+    "jupyter-mcp-tools>=0.1.4",
+    "jupyterlab==4.4.1",
     "numpy>=2.4.4",
+    "pycrdt>=0.12.50",
     "requests>=2.33.1",
     "torch>=2.9.1",
     "whitebox>=2.3.6",

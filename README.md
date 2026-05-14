@@ -556,6 +556,29 @@ uv pip install --python .venv314/bin/python whitebox
 
 Large raw and generated geospatial artifacts are ignored by `.gitignore`.
 
+## Jupyter MCP
+
+Project dependencies include JupyterLab plus the collaboration and MCP helper
+packages required by the Datalayer Jupyter MCP STDIO provider.
+
+Start JupyterLab from this repo before using the MCP server:
+
+```bash
+uv run jupyter lab --port 8888 --IdentityProvider.token skripsi-mcp --ip 127.0.0.1
+```
+
+Codex is configured in `/home/nozomi/.codex/config.toml` with:
+
+```toml
+[mcp_servers.jupyter]
+command = "uvx"
+args = ["jupyter-mcp-server@latest"]
+env = { JUPYTER_URL = "http://localhost:8888", JUPYTER_TOKEN = "skripsi-mcp", ALLOW_IMG_OUTPUT = "true" }
+```
+
+If the MCP client starts before JupyterLab, restart the client after JupyterLab
+is reachable, or reconnect with the server's `connect_to_jupyter` tool.
+
 ## Caveats
 
 - Current tile dataset is ready for U-Net style single-input 7-channel models.
