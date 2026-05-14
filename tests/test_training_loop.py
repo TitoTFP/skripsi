@@ -6,7 +6,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 from training.losses import masked_bce_dice_loss, masked_dice_loss
-from training.train import evaluate, save_checkpoint_if_best, train_one_epoch
+from training.train import EarlyStopping, evaluate, save_checkpoint_if_best, train_one_epoch, write_training_config
 
 
 class SyntheticFloodDataset(Dataset):
@@ -118,6 +118,39 @@ class TrainingLoopTests(unittest.TestCase):
             self.assertEqual(checkpoint["epoch"], 1)
             self.assertEqual(checkpoint["best_val_iou"], 0.4)
             self.assertEqual(checkpoint["architecture"], "unet")
+
+    def test_early_stopping_respects_patience_and_min_delta(self):
+        stopper = EarlyStopping(patience=2, min_delta=0.01)
+
+        self.assertFalse(stopper.step(0.50))
+        self.assertFalse(stopper.step(0.505))
+        self.assertTrue(stopper.step(0.506))
+        self.assertEqual(stopper.best_score, 0.50)
+        self.assertEqual(stopper.bad_epochs, 2)
+
+        self.assertFalse(stopper.step(0.52))
+        self.assertEqual(stopper.best_score, 0.52)
+        self.assertEqual(stopper.bad_epochs, 0)
+
+    def test_write_training_config_serializes_core_training_settings(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            config_path = write_training_config(
+                output_dir,
+                {
+                    "architecture": "unet",
+                    "optimizer": "AdamW",
+                    "lr": 1e-4,
+                    "batch_size": 2,
+                    "epochs": 25,
+                    "weight_decay": 1e-4,
+                    "early_stopping_patience": 5,
+                },
+            )
+
+            content = config_path.read_text()
+            self.assertIn('"optimizer": "AdamW"', content)
+            self.assertIn('"early_stopping_patience": 5', content)
 
 
 if __name__ == "__main__":

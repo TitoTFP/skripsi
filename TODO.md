@@ -104,11 +104,13 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
   - Pastikan masking `label_valid_mask` diterapkan dalam loss.
   - Opsional: BCE + Dice untuk stabilitas training.
 
-- [ ] Implementasi konfigurasi training.
+- [x] Implementasi konfigurasi training.
   - Optimizer AdamW.
   - Learning rate, batch size, epoch, weight decay, early stopping.
   - Logging train/validation loss dan metrik.
-  - Partial: training CLI tersedia di `scripts.train_segmentation`; early stopping belum ditambahkan.
+  - Training CLI tersedia di `scripts.train_segmentation`.
+  - Config tersimpan di `runs/{architecture}/config.json`.
+  - Metrics tersimpan di `runs/{architecture}/metrics.csv`.
 
 - [ ] Training baseline U-Net.
   - Jalankan training pada split train.

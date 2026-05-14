@@ -450,8 +450,8 @@ ProCANet:
 ```
 
 Default training uses AdamW, `25` epochs, batch size `2`, learning rate `1e-4`,
-weight decay `1e-4`, and auto-selects CUDA when available. Best checkpoints are
-saved by validation IoU:
+weight decay `1e-4`, early stopping patience `5`, and auto-selects CUDA when
+available. Best checkpoints are saved by validation IoU:
 
 ```text
 runs/unet/best.pt
@@ -462,6 +462,25 @@ Per-epoch metrics are written to:
 
 ```text
 runs/{architecture}/metrics.csv
+```
+
+The resolved training config is written to:
+
+```text
+runs/{architecture}/config.json
+```
+
+Useful overrides:
+
+```bash
+.venv314/bin/python -m scripts.train_segmentation \
+  --architecture unet \
+  --epochs 50 \
+  --batch-size 4 \
+  --lr 5e-5 \
+  --weight-decay 1e-4 \
+  --early-stopping-patience 8 \
+  --early-stopping-min-delta 0.001
 ```
 
 ## Environment

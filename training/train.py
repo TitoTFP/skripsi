@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -8,6 +10,24 @@ from torch.utils.data import DataLoader
 
 from training.losses import masked_bce_dice_loss
 from training.metrics import masked_binary_stats
+
+
+@dataclass
+class EarlyStopping:
+    patience: int
+    min_delta: float = 0.0
+    best_score: float = float("-inf")
+    bad_epochs: int = 0
+
+    def step(self, score: float) -> bool:
+        if self.patience <= 0:
+            return False
+        if score > self.best_score + self.min_delta:
+            self.best_score = score
+            self.bad_epochs = 0
+            return False
+        self.bad_epochs += 1
+        return self.bad_epochs >= self.patience
 
 
 def train_one_epoch(
@@ -92,6 +112,14 @@ def save_checkpoint_if_best(
     return val_iou, True
 
 
+def write_training_config(output_dir: Path | str, config: dict[str, Any]) -> Path:
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    path = output_dir / "config.json"
+    path.write_text(json.dumps(_jsonable(config), indent=2, sort_keys=True) + "\n")
+    return path
+
+
 def _to_device(value: Any, device: torch.device) -> Any:
     if isinstance(value, torch.Tensor):
         return value.to(device)
@@ -119,3 +147,13 @@ def _summarize(total_loss: float, batches: int, stats: dict[str, int]) -> dict[s
         "dice": (2 * tp) / dice_den if dice_den else 0.0,
         "accuracy": (tp + tn) / total if total else 0.0,
     }
+
+
+def _jsonable(value: Any) -> Any:
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, dict):
+        return {str(key): _jsonable(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_jsonable(item) for item in value]
+    return value

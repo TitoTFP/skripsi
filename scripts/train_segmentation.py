@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 
 from training.datasets import FloodTileDataset
 from training.models import ProCANet, UNet
-from training.train import evaluate, save_checkpoint_if_best, train_one_epoch
+from training.train import EarlyStopping, evaluate, save_checkpoint_if_best, train_one_epoch, write_training_config
 
 
 def parse_args() -> argparse.Namespace:
@@ -25,6 +25,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tile-root", type=Path, default=None)
     parser.add_argument("--base-channels", type=int, default=32)
     parser.add_argument("--max-batches", type=int, default=None)
+    parser.add_argument("--early-stopping-patience", type=int, default=5)
+    parser.add_argument("--early-stopping-min-delta", type=float, default=0.0)
     return parser.parse_args()
 
 
@@ -57,13 +59,28 @@ def main() -> None:
     config["device"] = str(device)
     config["output_dir"] = str(output_dir)
     config["tile_root"] = str(args.tile_root) if args.tile_root is not None else None
+    config["optimizer"] = "AdamW"
+    write_training_config(output_dir, config)
 
     metrics_path = output_dir / "metrics.csv"
     best_val_iou = -1.0
+    early_stopping = EarlyStopping(args.early_stopping_patience, args.early_stopping_min_delta)
     with metrics_path.open("w", newline="") as f:
         writer = csv.DictWriter(
             f,
-            fieldnames=["epoch", "train_loss", "train_iou", "train_dice", "val_loss", "val_iou", "val_dice", "saved"],
+            fieldnames=[
+                "epoch",
+                "train_loss",
+                "train_iou",
+                "train_dice",
+                "val_loss",
+                "val_iou",
+                "val_dice",
+                "best_val_iou",
+                "saved",
+                "bad_epochs",
+                "stopped_early",
+            ],
         )
         writer.writeheader()
         for epoch in range(1, args.epochs + 1):
@@ -79,6 +96,7 @@ def main() -> None:
                 architecture=args.architecture,
                 config=config,
             )
+            stopped_early = early_stopping.step(val_metrics["iou"])
             row = {
                 "epoch": epoch,
                 "train_loss": train_metrics["loss"],
@@ -87,11 +105,16 @@ def main() -> None:
                 "val_loss": val_metrics["loss"],
                 "val_iou": val_metrics["iou"],
                 "val_dice": val_metrics["dice"],
+                "best_val_iou": best_val_iou,
                 "saved": int(saved),
+                "bad_epochs": early_stopping.bad_epochs,
+                "stopped_early": int(stopped_early),
             }
             writer.writerow(row)
             f.flush()
             print(row)
+            if stopped_early:
+                break
 
 
 def build_model(architecture: str, base_channels: int) -> torch.nn.Module:
