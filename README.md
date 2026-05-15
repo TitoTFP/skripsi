@@ -283,8 +283,28 @@ effective_valid_mask = valid_mask & feature_valid_mask
 
 Artinya piksel di luar coverage UNOSAT atau memiliki feature no-data tidak ikut loss/metrik.
 
-`water_river_mask` bukan feature utama dan bukan label flood.
-Gunakan hanya sebagai control mask/exclusion mask bila perlu.
+Default training tetap memakai `y` dari `label_flood_binary` saja.
+`water_river_mask` bukan feature utama dan tidak otomatis menjadi label flood.
+
+Untuk eksperimen sensitivitas, training CLI bisa menganggap water/river sebagai
+flood positif tanpa mengubah tile:
+
+```bash
+uv run python -m scripts.train_segmentation --architecture unet --water-river
+```
+
+Saat flag `--water-river` atau `--water_river` aktif, target train/validation
+menjadi:
+
+```text
+y_effective = y | water_river_mask
+```
+
+Mask valid tetap sama:
+
+```text
+effective_valid_mask = valid_mask & feature_valid_mask
+```
 
 ## ProCANet Tile Format
 
@@ -439,7 +459,7 @@ uv run python -m unittest tests.test_preprocessing_helpers tests.test_training_d
 Expected:
 
 ```text
-Ran 20 tests
+Ran 30 tests
 OK
 ```
 
@@ -458,8 +478,9 @@ uv run python -m scripts.train_segmentation --architecture procanet
 ```
 
 Default training uses AdamW, `25` epochs, batch size `2`, learning rate `1e-4`,
-weight decay `1e-4`, early stopping patience `5`, and auto-selects CUDA when
-available. Best checkpoints are saved by validation IoU:
+weight decay `1e-4`, early stopping patience `5`, `ReduceLROnPlateau` on
+validation IoU, gradient accumulation step `1`, AMP disabled, and auto-selects
+CUDA when available. Best checkpoints are saved by validation IoU:
 
 ```text
 runs/unet/best.pt
@@ -470,6 +491,13 @@ Per-epoch metrics are written to:
 
 ```text
 runs/{architecture}/metrics.csv
+```
+
+Metrics columns:
+
+```text
+epoch, train_loss, train_iou, train_dice, val_loss, val_iou, val_dice,
+lr, best_val_iou, saved, bad_epochs, stopped_early
 ```
 
 The resolved training config is written to:
@@ -487,9 +515,27 @@ uv run python -m scripts.train_segmentation \
   --batch-size 4 \
   --lr 5e-5 \
   --weight-decay 1e-4 \
+  --lr-scheduler reduce-on-plateau \
+  --lr-factor 0.5 \
+  --lr-patience 2 \
+  --gradient-accumulation-steps 2 \
+  --amp \
   --early-stopping-patience 8 \
   --early-stopping-min-delta 0.001
 ```
+
+Water/river-as-flood experiment:
+
+```bash
+uv run python -m scripts.train_segmentation \
+  --architecture unet \
+  --water-river \
+  --amp \
+  --gradient-accumulation-steps 2
+```
+
+`--amp` only takes effect on CUDA. On CPU, training falls back to FP32 and
+`runs/{architecture}/config.json` records `amp_effective: false`.
 
 ## Environment
 
@@ -599,7 +645,8 @@ is reachable, or reconnect with the server's `connect_to_jupyter` tool.
 - `s2_valid_mask` should be used for audit, ablation, or sensitivity checks.
 - Loss/evaluation use `label_valid_mask` intersected with `feature_valid_mask`
   to ignore pixels outside UNOSAT analysis coverage or feature coverage.
-- `water_river_mask` is auxiliary only; it is not flood target and not model input.
+- `water_river_mask` is auxiliary by default; pass `--water-river`/`--water_river`
+  to union it into the train/validation flood target for sensitivity experiments.
 
 ## Minimal PyTorch Loading Example
 
@@ -623,6 +670,12 @@ valid_mask = label_valid_mask & feature_valid_mask
 # logits = model(x)
 # loss = masked_bce_with_logits(logits, y, valid_mask)
 # iou = masked_iou(logits, y, valid_mask)
+```
+
+Water/river-as-flood loader experiment:
+
+```python
+dataset = FloodTileDataset("train", architecture="unet", water_river_as_flood=True)
 ```
 
 ProCANet loader:
