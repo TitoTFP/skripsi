@@ -44,7 +44,7 @@ def train_one_epoch(
     for batch in loader:
         features = _to_device(batch["features"], device)
         y = batch["y"].to(device)
-        valid_mask = batch["valid_mask"].to(device)
+        valid_mask = _effective_valid_mask(batch, device)
 
         optimizer.zero_grad(set_to_none=True)
         logits = model(features)
@@ -74,7 +74,7 @@ def evaluate(
     for batch in loader:
         features = _to_device(batch["features"], device)
         y = batch["y"].to(device)
-        valid_mask = batch["valid_mask"].to(device)
+        valid_mask = _effective_valid_mask(batch, device)
         logits = model(features)
         loss = masked_bce_dice_loss(logits, y, valid_mask)
         total_loss += float(loss.detach().cpu())
@@ -118,6 +118,22 @@ def write_training_config(output_dir: Path | str, config: dict[str, Any]) -> Pat
     path = output_dir / "config.json"
     path.write_text(json.dumps(_jsonable(config), indent=2, sort_keys=True) + "\n")
     return path
+
+
+def _effective_valid_mask(batch: dict[str, Any], device: torch.device) -> torch.Tensor:
+    """Return pixels valid for both label and feature tensors.
+
+    ``valid_mask`` comes from ``label_valid_mask`` in the tile maker. When
+    ``feature_valid_mask`` is available in auxiliary masks, loss and metrics
+    should only use the intersection of both masks so invalid/no-data features
+    never contribute to optimization or evaluation.
+    """
+    label_valid_mask = batch["valid_mask"].to(device).bool()
+    auxiliary_masks = batch.get("auxiliary_masks") or {}
+    feature_valid_mask = auxiliary_masks.get("feature_valid_mask")
+    if feature_valid_mask is None:
+        return label_valid_mask
+    return label_valid_mask & feature_valid_mask.to(device).bool()
 
 
 def _to_device(value: Any, device: torch.device) -> Any:
