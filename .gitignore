@@ -30,6 +30,8 @@ service-account*.json
 
 # Notebooks and interactive work
 .ipynb_checkpoints/
+.jupyter_ystore.db
+.jupyter/
 
 # OS and editor files
 .DS_Store
