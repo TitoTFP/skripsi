@@ -136,7 +136,9 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
   - Checkpoint terbaik: `runs/baseline_unet/best.pt`.
   - Log metrik: `runs/baseline_unet/metrics.csv`.
   - Config training: `runs/baseline_unet/config.json`.
+  - Config aktual: `epochs=50`, `batch_size=8`, `lr=1e-4`, `weight_decay=1e-4`, `device=cuda`.
   - Best validation IoU: `0.6062394985`.
+  - Best validation Dice/F1 pada epoch checkpoint: `0.7548556726`.
   - Early stopping berhenti pada epoch `10`.
 
 - [x] Training ProCANet.
@@ -146,7 +148,9 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
   - Checkpoint terbaik: `runs/procanet/best.pt`.
   - Log metrik: `runs/procanet/metrics.csv`.
   - Config training: `runs/procanet/config.json`.
+  - Config aktual: `epochs=50`, `batch_size=4`, `lr=1e-4`, `weight_decay=1e-4`, `device=cuda`.
   - Best validation IoU: `0.6224360219`.
+  - Best validation Dice/F1 pada epoch checkpoint: `0.7672857524`.
   - Early stopping berhenti pada epoch `17`.
 
 - [x] Visualisasi kurva training awal.
@@ -155,6 +159,7 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
 
 - [ ] Evaluasi model pada split test.
   - Inferensi U-Net dan ProCANet pada test set.
+  - Pakai checkpoint: `runs/baseline_unet/best.pt` dan `runs/procanet/best.pt`.
   - Hitung confusion matrix piksel: TP, FP, TN, FN.
   - Hitung IoU.
   - Hitung F1-score/Dice.

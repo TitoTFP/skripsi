@@ -468,13 +468,21 @@ OK
 Baseline U-Net:
 
 ```bash
-uv run python -m scripts.train_segmentation --architecture unet
+uv run python -m scripts.train_segmentation \
+  --architecture unet \
+  --epochs 50 \
+  --batch-size 8 \
+  --output-dir runs/baseline_unet
 ```
 
 ProCANet:
 
 ```bash
-uv run python -m scripts.train_segmentation --architecture procanet
+uv run python -m scripts.train_segmentation \
+  --architecture procanet \
+  --epochs 50 \
+  --batch-size 4 \
+  --output-dir runs/procanet
 ```
 
 Default training uses AdamW, `25` epochs, batch size `2`, learning rate `1e-4`,
@@ -483,7 +491,13 @@ validation IoU, gradient accumulation step `1`, AMP disabled, and auto-selects
 CUDA when available. Best checkpoints are saved by validation IoU:
 
 ```text
-runs/unet/best.pt
+runs/{architecture}/best.pt
+```
+
+The current finished experiment outputs are:
+
+```text
+runs/baseline_unet/best.pt
 runs/procanet/best.pt
 ```
 
@@ -499,6 +513,10 @@ Metrics columns:
 epoch, train_loss, train_iou, train_dice, val_loss, val_iou, val_dice,
 lr, best_val_iou, saved, bad_epochs, stopped_early
 ```
+
+Existing finished run CSV files under `runs/baseline_unet/` and `runs/procanet/`
+were generated before the `lr` column was added, so those files keep the older
+schema without `lr`.
 
 The resolved training config is written to:
 
@@ -536,6 +554,34 @@ uv run python -m scripts.train_segmentation \
 
 `--amp` only takes effect on CUDA. On CPU, training falls back to FP32 and
 `runs/{architecture}/config.json` records `amp_effective: false`.
+
+### Current Training Results
+
+Finished training runs:
+
+| Model | Output dir | Epoch stopped | Best validation IoU | Best validation Dice |
+|---|---|---:|---:|---:|
+| U-Net baseline | `runs/baseline_unet/` | 10 | 0.6062394985 | 0.7548556726 |
+| ProCANet | `runs/procanet/` | 17 | 0.6224360219 | 0.7672857524 |
+
+The current comparison plot is stored at:
+
+```text
+runs/training_curves.png
+```
+
+These are validation results only. Final test-set inference, confusion matrix,
+IoU, Dice/F1, and qualitative overlay visualizations are still pending.
+
+### Mask Visualization
+
+Inspect a tile and its label/masks:
+
+```bash
+uv run python -m scripts.visualize_valid_masks \
+  dataset/tiles/7ch/train/<tile>.npz \
+  --output runs/<tile>_masks.png
+```
 
 ## Environment
 
