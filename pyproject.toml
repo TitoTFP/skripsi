@@ -7,6 +7,7 @@ requires-python = ">=3.14,<3.15"
 dependencies = [
     "earthengine-api>=1.7.25",
     "ipykernel>=7.2.0",
+    "ipywidgets>=8.1.8",
     "jupyter-collaboration==4.0.2",
     "jupyter-mcp-tools>=0.1.4",
     "jupyterlab==4.4.1",
