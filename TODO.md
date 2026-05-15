@@ -79,7 +79,7 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
   - Loader U-Net perlu membaca `.npz` tile dari `dataset/tiles/7ch/`.
   - Loader ProCANet perlu membaca `.npz` tile dari `dataset/tiles/procanet/`.
   - Loader perlu mengembalikan feature tensor, `y`, `valid_mask`, dan metadata.
-  - Loss dan metrik wajib mengabaikan piksel dengan `valid_mask=0`.
+  - Loss dan metrik wajib mengabaikan piksel dengan effective mask `valid_mask & feature_valid_mask`.
   - Implemented in `training.datasets`, `training.losses`, and `training.metrics`.
 
 - [x] Implementasi augmentasi data dinamis.
@@ -101,7 +101,7 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
 
 - [x] Implementasi loss function.
   - Minimal Dice Loss sesuai proposal.
-  - Pastikan masking `label_valid_mask` diterapkan dalam loss.
+  - Pastikan masking `label_valid_mask & feature_valid_mask` diterapkan dalam loss.
   - Opsional: BCE + Dice untuk stabilitas training.
 
 - [x] Implementasi konfigurasi training.
@@ -152,6 +152,6 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
 ## Catatan Penting
 
 - `WaterExtent_*` dan river mask tidak boleh otomatis dianggap flood positif jika targetnya "banjir". Repo saat ini sudah memisahkan flood label dari water/river auxiliary mask.
-- Training dan evaluasi harus memakai `label_valid_mask`; piksel di luar area valid tidak boleh dihitung sebagai benar/salah.
+- Training dan evaluasi harus memakai `label_valid_mask & feature_valid_mask`; piksel di luar area valid UNOSAT atau feature coverage tidak boleh dihitung sebagai benar/salah.
 - Wilayah dengan Sentinel-2 kosong/hampir kosong tetap masuk dataset. Analisis hasil perlu mencatat risiko model belajar artefak `HSV=0`.
 - Proposal awal memakai istilah "pseudo ground truth" berbasis rule-based fusion, tetapi narasi final sekarang harus memakai UNOSAT sebagai proxy label.

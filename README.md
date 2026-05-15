@@ -275,6 +275,14 @@ valid_mask=1 and y=0 -> non-flood
 valid_mask=0          -> ignore
 ```
 
+Saat training/evaluasi, mask efektif adalah intersection:
+
+```text
+effective_valid_mask = valid_mask & feature_valid_mask
+```
+
+Artinya piksel di luar coverage UNOSAT atau memiliki feature no-data tidak ikut loss/metrik.
+
 `water_river_mask` bukan feature utama dan bukan label flood.
 Gunakan hanya sebagai control mask/exclusion mask bila perlu.
 
@@ -589,8 +597,8 @@ is reachable, or reconnect with the server's `connect_to_jupyter` tool.
   SAR is the most reliable water/flood modality under cloud and rain conditions.
 - S2 invalid regions are intentionally kept with HSV zeroed.
 - `s2_valid_mask` should be used for audit, ablation, or sensitivity checks.
-- `label_valid_mask` must be used during loss/evaluation to ignore pixels outside
-  UNOSAT analysis coverage.
+- Loss/evaluation use `label_valid_mask` intersected with `feature_valid_mask`
+  to ignore pixels outside UNOSAT analysis coverage or feature coverage.
 - `water_river_mask` is auxiliary only; it is not flood target and not model input.
 
 ## Minimal PyTorch Loading Example
@@ -608,7 +616,9 @@ batch = next(iter(loader))
 
 x = batch["features"]              # 2 x 7 x 512 x 512
 y = batch["y"]                     # 2 x 1 x 512 x 512
-valid_mask = batch["valid_mask"]   # 2 x 1 x 512 x 512
+label_valid_mask = batch["valid_mask"]                                 # 2 x 1 x 512 x 512
+feature_valid_mask = batch["auxiliary_masks"]["feature_valid_mask"]     # 2 x 1 x 512 x 512
+valid_mask = label_valid_mask & feature_valid_mask
 
 # logits = model(x)
 # loss = masked_bce_with_logits(logits, y, valid_mask)

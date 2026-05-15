@@ -83,6 +83,35 @@ class TrainingLoopTests(unittest.TestCase):
         self.assertIn("loss", train_metrics)
         self.assertIn("iou", val_metrics)
 
+    def test_evaluate_intersects_label_and_feature_valid_masks(self):
+        class FeatureMaskDataset(Dataset):
+            def __len__(self):
+                return 1
+
+            def __getitem__(self, index):
+                feature_valid_mask = torch.ones(1, 16, 16, dtype=torch.bool)
+                feature_valid_mask[:, 0, 1] = False
+                return {
+                    "features": torch.zeros(7, 16, 16),
+                    "y": torch.zeros(1, 16, 16),
+                    "valid_mask": torch.ones(1, 16, 16, dtype=torch.bool),
+                    "auxiliary_masks": {"feature_valid_mask": feature_valid_mask},
+                    "metadata": {"index": index},
+                }
+
+        class FixedLogitModel(torch.nn.Module):
+            def forward(self, features):
+                logits = torch.full((features.shape[0], 1, features.shape[-2], features.shape[-1]), -10.0)
+                logits[:, :, 0, 1] = 10.0
+                return logits
+
+        loader = DataLoader(FeatureMaskDataset(), batch_size=1)
+
+        metrics = evaluate(FixedLogitModel(), loader, torch.device("cpu"), max_batches=1)
+
+        self.assertEqual(metrics["iou"], 0.0)
+        self.assertEqual(metrics["accuracy"], 1.0)
+
     def test_checkpoint_only_updates_when_val_iou_improves(self):
         model = TinySegmentationModel("unet")
         optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
