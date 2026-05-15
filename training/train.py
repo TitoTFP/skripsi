@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+from itertools import islice
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import torch
 from torch.utils.data import DataLoader
+from tqdm.auto import tqdm
 
 from training.losses import masked_bce_dice_loss
 from training.metrics import masked_binary_stats
@@ -36,12 +38,13 @@ def train_one_epoch(
     optimizer: torch.optim.Optimizer,
     device: torch.device,
     max_batches: int | None = None,
+    progress_desc: str | None = None,
 ) -> dict[str, float]:
     model.train()
     total_loss = 0.0
     batches = 0
     stats = {"tp": 0, "tn": 0, "fp": 0, "fn": 0}
-    for batch in loader:
+    for batch in _batch_iterator(loader, max_batches=max_batches, progress_desc=progress_desc):
         features = _to_device(batch["features"], device)
         y = batch["y"].to(device)
         valid_mask = _effective_valid_mask(batch, device)
@@ -55,8 +58,6 @@ def train_one_epoch(
         total_loss += float(loss.detach().cpu())
         _accumulate(stats, masked_binary_stats(logits.detach(), y, valid_mask))
         batches += 1
-        if max_batches is not None and batches >= max_batches:
-            break
     return _summarize(total_loss, batches, stats)
 
 
@@ -66,12 +67,13 @@ def evaluate(
     loader: DataLoader,
     device: torch.device,
     max_batches: int | None = None,
+    progress_desc: str | None = None,
 ) -> dict[str, float]:
     model.eval()
     total_loss = 0.0
     batches = 0
     stats = {"tp": 0, "tn": 0, "fp": 0, "fn": 0}
-    for batch in loader:
+    for batch in _batch_iterator(loader, max_batches=max_batches, progress_desc=progress_desc):
         features = _to_device(batch["features"], device)
         y = batch["y"].to(device)
         valid_mask = _effective_valid_mask(batch, device)
@@ -80,8 +82,6 @@ def evaluate(
         total_loss += float(loss.detach().cpu())
         _accumulate(stats, masked_binary_stats(logits, y, valid_mask))
         batches += 1
-        if max_batches is not None and batches >= max_batches:
-            break
     return _summarize(total_loss, batches, stats)
 
 
@@ -147,6 +147,20 @@ def _to_device(value: Any, device: torch.device) -> Any:
 def _accumulate(total: dict[str, int], update: dict[str, int]) -> None:
     for key in total:
         total[key] += update[key]
+
+
+def _batch_iterator(
+    loader: DataLoader,
+    max_batches: int | None,
+    progress_desc: str | None,
+) -> Any:
+    if progress_desc is None:
+        return islice(loader, max_batches) if max_batches is not None else loader
+    total = len(loader)
+    if max_batches is not None:
+        total = min(total, max_batches)
+    iterator = islice(loader, max_batches) if max_batches is not None else loader
+    return tqdm(iterator, total=total, desc=progress_desc, dynamic_ncols=True, leave=True)
 
 
 def _summarize(total_loss: float, batches: int, stats: dict[str, int]) -> dict[str, float]:

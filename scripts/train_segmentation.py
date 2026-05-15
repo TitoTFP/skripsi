@@ -84,8 +84,21 @@ def main() -> None:
         )
         writer.writeheader()
         for epoch in range(1, args.epochs + 1):
-            train_metrics = train_one_epoch(model, train_loader, optimizer, device, max_batches=args.max_batches)
-            val_metrics = evaluate(model, val_loader, device, max_batches=args.max_batches)
+            train_metrics = train_one_epoch(
+                model,
+                train_loader,
+                optimizer,
+                device,
+                max_batches=args.max_batches,
+                progress_desc=f"{args.architecture} epoch {epoch}/{args.epochs} train",
+            )
+            val_metrics = evaluate(
+                model,
+                val_loader,
+                device,
+                max_batches=args.max_batches,
+                progress_desc=f"{args.architecture} epoch {epoch}/{args.epochs} val",
+            )
             best_val_iou, saved = save_checkpoint_if_best(
                 model,
                 optimizer,

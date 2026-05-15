@@ -14,5 +14,6 @@ dependencies = [
     "pycrdt>=0.12.50",
     "requests>=2.33.1",
     "torch>=2.9.1",
+    "tqdm>=4.67.3",
     "whitebox>=2.3.6",
 ]
