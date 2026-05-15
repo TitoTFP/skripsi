@@ -27,12 +27,14 @@ class FloodTileDataset(Dataset):
         root: Path | str | None = None,
         augment: bool | None = None,
         rng: np.random.Generator | None = None,
+        water_river_as_flood: bool = False,
     ) -> None:
         self.split = split
         self.architecture = architecture.lower()
         self.root = Path(root) if root is not None else DEFAULT_TILE_ROOT
         self.rng = rng or np.random.default_rng()
         self.augment = (split == "train") if augment is None else bool(augment and split == "train")
+        self.water_river_as_flood = water_river_as_flood
 
         if self.split not in VALID_SPLITS:
             raise ValueError(f"split must be one of {sorted(VALID_SPLITS)}, got {split!r}")
@@ -53,7 +55,7 @@ class FloodTileDataset(Dataset):
         with np.load(path, allow_pickle=False) as data:
             sample = {
                 "features": self._read_features(data),
-                "y": _float_tensor(data["y"]),
+                "y": self._read_target(data),
                 "valid_mask": _bool_tensor(data["valid_mask"]),
                 "metadata": self._read_metadata(data, path),
             }
@@ -68,6 +70,12 @@ class FloodTileDataset(Dataset):
         if self.augment:
             sample = apply_spatial_transform(sample, random_spatial_transform(self.rng))
         return sample
+
+    def _read_target(self, data: np.lib.npyio.NpzFile) -> torch.Tensor:
+        target = data["y"].astype(bool, copy=False)
+        if self.water_river_as_flood:
+            target = target | data["water_river_mask"].astype(bool, copy=False)
+        return _float_tensor(target.astype(np.float32, copy=False))
 
     def _read_features(self, data: np.lib.npyio.NpzFile) -> torch.Tensor | dict[str, torch.Tensor]:
         if self.architecture == "unet":

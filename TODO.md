@@ -1,7 +1,7 @@
 # TODO Skripsi
 
 Sumber: `5003221164_Proposal TA Final.docx`, terutama Bab 3 Metode Penelitian.
-Status dicek terhadap isi repo pada 2026-05-14.
+Status dicek terhadap isi repo pada 2026-05-15.
 
 Topik penelitian: integrasi Sentinel-1, Sentinel-2, dan DEMNAS untuk deteksi area banjir di Sumatra dengan baseline U-Net dan model ProCANet.
 
@@ -112,15 +112,46 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
   - Config tersimpan di `runs/{architecture}/config.json`.
   - Metrics tersimpan di `runs/{architecture}/metrics.csv`.
 
-- [ ] Training baseline U-Net.
-  - Jalankan training pada split train.
-  - Validasi pada split validation.
-  - Simpan bobot terbaik dan grafik/log training.
+- [x] Implementasi opsi eksperimen label water/river sebagai flood.
+  - Default tetap flood-only dari `label_flood_binary`.
+  - Jika argumen `--water-river` atau `--water_river` dipakai, target training/validation menjadi union `label_flood_binary | label_water_river_mask`.
+  - `water_river_mask` tetap disimpan sebagai auxiliary mask untuk audit.
+  - Contoh command:
+    ```bash
+    uv run python -m scripts.train_segmentation --architecture unet --water-river --amp --gradient-accumulation-steps 2
+    ```
 
-- [ ] Training ProCANet.
-  - Jalankan training dengan input dua encoder.
-  - Validasi pada split validation.
-  - Simpan bobot terbaik dan grafik/log training.
+- [x] Implementasi kontrol optimasi training tambahan.
+  - Learning rate scheduler: `--lr-scheduler reduce-on-plateau` atau `--lr-scheduler none`.
+  - Default scheduler: `ReduceLROnPlateau` dengan mode `max` pada validation IoU.
+  - Argumen scheduler: `--lr-factor` dan `--lr-patience`.
+  - Gradient accumulation tersedia lewat `--gradient-accumulation-steps`.
+  - Automatic mixed precision tersedia lewat `--amp`; efektif hanya saat device CUDA.
+  - Metrics CSV menambahkan kolom `lr`.
+
+- [x] Training baseline U-Net.
+  - Training sudah dijalankan pada split train.
+  - Validasi sudah dijalankan pada split validation.
+  - Output ada di `runs/baseline_unet/`.
+  - Checkpoint terbaik: `runs/baseline_unet/best.pt`.
+  - Log metrik: `runs/baseline_unet/metrics.csv`.
+  - Config training: `runs/baseline_unet/config.json`.
+  - Best validation IoU: `0.6062394985`.
+  - Early stopping berhenti pada epoch `10`.
+
+- [x] Training ProCANet.
+  - Training sudah dijalankan dengan input dua encoder.
+  - Validasi sudah dijalankan pada split validation.
+  - Output ada di `runs/procanet/`.
+  - Checkpoint terbaik: `runs/procanet/best.pt`.
+  - Log metrik: `runs/procanet/metrics.csv`.
+  - Config training: `runs/procanet/config.json`.
+  - Best validation IoU: `0.6224360219`.
+  - Early stopping berhenti pada epoch `17`.
+
+- [x] Visualisasi kurva training awal.
+  - Grafik tersimpan di `runs/training_curves.png`.
+  - Kurva ini merangkum hasil training baseline U-Net dan ProCANet yang sudah ada di `runs/`.
 
 - [ ] Evaluasi model pada split test.
   - Inferensi U-Net dan ProCANet pada test set.
@@ -151,7 +182,7 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
 
 ## Catatan Penting
 
-- `WaterExtent_*` dan river mask tidak boleh otomatis dianggap flood positif jika targetnya "banjir". Repo saat ini sudah memisahkan flood label dari water/river auxiliary mask.
+- `WaterExtent_*` dan river mask tidak otomatis dianggap flood positif secara default. Repo tetap memisahkan flood label dari water/river auxiliary mask, tetapi eksperimen union label bisa dijalankan eksplisit dengan `--water-river`.
 - Training dan evaluasi harus memakai `label_valid_mask & feature_valid_mask`; piksel di luar area valid UNOSAT atau feature coverage tidak boleh dihitung sebagai benar/salah.
 - Wilayah dengan Sentinel-2 kosong/hampir kosong tetap masuk dataset. Analisis hasil perlu mencatat risiko model belajar artefak `HSV=0`.
 - Proposal awal memakai istilah "pseudo ground truth" berbasis rule-based fusion, tetapi narasi final sekarang harus memakai UNOSAT sebagai proxy label.

@@ -39,25 +39,40 @@ def train_one_epoch(
     device: torch.device,
     max_batches: int | None = None,
     progress_desc: str | None = None,
+    gradient_accumulation_steps: int = 1,
+    amp_enabled: bool = False,
+    scaler: torch.amp.GradScaler | None = None,
 ) -> dict[str, float]:
     model.train()
     total_loss = 0.0
     batches = 0
     stats = {"tp": 0, "tn": 0, "fp": 0, "fn": 0}
+    accumulation_steps = max(1, gradient_accumulation_steps)
+    effective_amp = bool(amp_enabled and device.type == "cuda")
+    scaler = scaler or torch.amp.GradScaler("cuda", enabled=effective_amp)
+    optimizer.zero_grad(set_to_none=True)
     for batch in _batch_iterator(loader, max_batches=max_batches, progress_desc=progress_desc):
         features = _to_device(batch["features"], device)
         y = batch["y"].to(device)
         valid_mask = _effective_valid_mask(batch, device)
 
-        optimizer.zero_grad(set_to_none=True)
-        logits = model(features)
-        loss = masked_bce_dice_loss(logits, y, valid_mask)
-        loss.backward()
-        optimizer.step()
+        with torch.amp.autocast(device_type="cuda", enabled=effective_amp):
+            logits = model(features)
+            loss = masked_bce_dice_loss(logits, y, valid_mask)
+            backward_loss = loss / accumulation_steps
+        scaler.scale(backward_loss).backward()
+        if (batches + 1) % accumulation_steps == 0:
+            scaler.step(optimizer)
+            scaler.update()
+            optimizer.zero_grad(set_to_none=True)
 
         total_loss += float(loss.detach().cpu())
         _accumulate(stats, masked_binary_stats(logits.detach(), y, valid_mask))
         batches += 1
+    if batches and batches % accumulation_steps != 0:
+        scaler.step(optimizer)
+        scaler.update()
+        optimizer.zero_grad(set_to_none=True)
     return _summarize(total_loss, batches, stats)
 
 

@@ -21,7 +21,7 @@ def write_unet_tile(root: Path, split: str = "train", name: str = "tile.npz") ->
         x=np.arange(7 * 3 * 4, dtype=np.float32).reshape(7, 3, 4),
         y=np.array([[[0, 1, 0, 1], [1, 0, 1, 0], [0, 0, 1, 1]]], dtype=np.uint8),
         valid_mask=np.array([[[1, 1, 0, 1], [1, 0, 1, 1], [0, 1, 1, 1]]], dtype=np.uint8),
-        water_river_mask=np.zeros((1, 3, 4), dtype=np.uint8),
+        water_river_mask=np.array([[[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0]]], dtype=np.uint8),
         feature_valid_mask=np.ones((1, 3, 4), dtype=np.uint8),
         s2_valid_mask=np.ones((1, 3, 4), dtype=np.uint8),
         region=np.array("Aceh_Timur"),
@@ -73,6 +73,33 @@ class TrainingDataTests(unittest.TestCase):
             self.assertEqual(sample["metadata"]["col"], 1024)
             self.assertEqual(sample["metadata"]["path"], str(tile_path))
             self.assertEqual(sample["metadata"]["channels"], ("VV", "VH", "Hue", "Saturation", "Value", "Slope", "HAND"))
+
+    def test_unet_dataset_keeps_default_flood_only_target(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            write_unet_tile(root)
+
+            sample = FloodTileDataset("train", architecture="unet", root=root, augment=False)[0]
+
+            expected = torch.tensor([[[0, 1, 0, 1], [1, 0, 1, 0], [0, 0, 1, 1]]], dtype=torch.float32)
+            self.assertTrue(torch.equal(sample["y"], expected))
+
+    def test_unet_dataset_can_union_water_river_mask_into_target(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            write_unet_tile(root)
+
+            sample = FloodTileDataset(
+                "train",
+                architecture="unet",
+                root=root,
+                augment=False,
+                water_river_as_flood=True,
+            )[0]
+
+            expected = torch.tensor([[[1, 1, 0, 1], [1, 0, 1, 0], [0, 1, 1, 1]]], dtype=torch.float32)
+            self.assertTrue(torch.equal(sample["y"], expected))
+            self.assertIn("water_river_mask", sample["auxiliary_masks"])
 
     def test_procanet_dataset_reads_two_encoder_features(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -1,10 +1,12 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import torch
 from torch.utils.data import DataLoader, Dataset
 
+from scripts.train_segmentation import build_scheduler, parse_args, resolve_amp_enabled
 from training.losses import masked_bce_dice_loss, masked_dice_loss
 from training.train import EarlyStopping, evaluate, save_checkpoint_if_best, train_one_epoch, write_training_config
 
@@ -48,6 +50,16 @@ class TinySegmentationModel(torch.nn.Module):
         return self.conv(features)
 
 
+class StepCountingOptimizer(torch.optim.SGD):
+    def __init__(self, params):
+        super().__init__(params, lr=1.0)
+        self.step_calls = 0
+
+    def step(self, closure=None):
+        self.step_calls += 1
+        return super().step(closure)
+
+
 class TrainingLoopTests(unittest.TestCase):
     def test_masked_dice_loss_ignores_invalid_pixels(self):
         logits = torch.tensor([[[[10.0, 10.0], [-10.0, -10.0]]]])
@@ -72,6 +84,37 @@ class TrainingLoopTests(unittest.TestCase):
         self.assertIn("iou", val_metrics)
         self.assertIn("dice", val_metrics)
 
+    def test_train_one_epoch_accumulates_two_batches_before_optimizer_step(self):
+        model = TinySegmentationModel("unet")
+        optimizer = StepCountingOptimizer(model.parameters())
+        loader = DataLoader(SyntheticFloodDataset("unet", length=2), batch_size=1)
+
+        train_one_epoch(
+            model,
+            loader,
+            optimizer,
+            torch.device("cpu"),
+            gradient_accumulation_steps=2,
+        )
+
+        self.assertEqual(optimizer.step_calls, 1)
+
+    def test_train_one_epoch_accepts_amp_on_cpu_without_enabling_cuda_amp(self):
+        model = TinySegmentationModel("unet")
+        optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
+        loader = DataLoader(SyntheticFloodDataset("unet", length=1), batch_size=1)
+
+        metrics = train_one_epoch(
+            model,
+            loader,
+            optimizer,
+            torch.device("cpu"),
+            amp_enabled=True,
+            max_batches=1,
+        )
+
+        self.assertIn("loss", metrics)
+
     def test_train_and_evaluate_one_epoch_with_synthetic_procanet_batch(self):
         model = TinySegmentationModel("procanet")
         optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
@@ -82,6 +125,50 @@ class TrainingLoopTests(unittest.TestCase):
 
         self.assertIn("loss", train_metrics)
         self.assertIn("iou", val_metrics)
+
+    def test_parse_args_accepts_water_river_alias_and_training_controls(self):
+        argv = [
+            "train_segmentation.py",
+            "--architecture",
+            "unet",
+            "--water_river",
+            "--amp",
+            "--gradient-accumulation-steps",
+            "2",
+            "--lr-scheduler",
+            "reduce-on-plateau",
+            "--lr-factor",
+            "0.25",
+            "--lr-patience",
+            "3",
+        ]
+        with patch("sys.argv", argv):
+            args = parse_args()
+
+        self.assertTrue(args.water_river_as_flood)
+        self.assertTrue(args.amp)
+        self.assertEqual(args.gradient_accumulation_steps, 2)
+        self.assertEqual(args.lr_scheduler, "reduce-on-plateau")
+        self.assertEqual(args.lr_factor, 0.25)
+        self.assertEqual(args.lr_patience, 3)
+
+    def test_build_scheduler_reduces_lr_when_validation_iou_stagnates(self):
+        model = TinySegmentationModel("unet")
+        optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
+        scheduler = build_scheduler(
+            optimizer,
+            scheduler_name="reduce-on-plateau",
+            factor=0.5,
+            patience=0,
+        )
+
+        scheduler.step(0.5)
+        scheduler.step(0.5)
+
+        self.assertEqual(optimizer.param_groups[0]["lr"], 5e-4)
+
+    def test_resolve_amp_enabled_requires_cuda_device(self):
+        self.assertFalse(resolve_amp_enabled(True, torch.device("cpu")))
 
     def test_evaluate_intersects_label_and_feature_valid_masks(self):
         class FeatureMaskDataset(Dataset):
@@ -174,12 +261,16 @@ class TrainingLoopTests(unittest.TestCase):
                     "epochs": 25,
                     "weight_decay": 1e-4,
                     "early_stopping_patience": 5,
+                    "water_river_as_flood": True,
+                    "amp_effective": False,
                 },
             )
 
             content = config_path.read_text()
             self.assertIn('"optimizer": "AdamW"', content)
             self.assertIn('"early_stopping_patience": 5', content)
+            self.assertIn('"water_river_as_flood": true', content)
+            self.assertIn('"amp_effective": false', content)
 
 
 if __name__ == "__main__":
