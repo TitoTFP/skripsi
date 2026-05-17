@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-from osgeo import gdal
+from osgeo import gdal, ogr
 
 from scripts.preprocessing_utils import create_like, region_to_output_name
 
@@ -89,12 +89,38 @@ def gdb_layer_names(gdb: gdal.Dataset) -> list[str]:
     return [gdb.GetLayerByIndex(idx).GetName() for idx in range(gdb.GetLayerCount())]
 
 
+def merge_vector_layers(vector_ds: gdal.Dataset, layer_names: tuple[str, ...], merged_name: str) -> tuple[ogr.DataSource, ogr.Layer]:
+    driver = ogr.GetDriverByName("MEM")
+    merged_ds = driver.CreateDataSource(f"{merged_name}_ds")
+    first_layer = vector_ds.GetLayerByName(layer_names[0])
+    if first_layer is None:
+        raise ValueError(f"Missing vector layer: {layer_names[0]}")
+
+    merged_layer = merged_ds.CreateLayer(merged_name, srs=first_layer.GetSpatialRef(), geom_type=ogr.wkbUnknown)
+    for layer_name in layer_names:
+        source_layer = vector_ds.GetLayerByName(layer_name)
+        if source_layer is None:
+            raise ValueError(f"Missing vector layer: {layer_name}")
+        source_layer.ResetReading()
+        for source_feature in source_layer:
+            geometry = source_feature.GetGeometryRef()
+            if geometry is None:
+                continue
+            merged_feature = ogr.Feature(merged_layer.GetLayerDefn())
+            merged_feature.SetGeometry(geometry.Clone())
+            merged_layer.CreateFeature(merged_feature)
+            merged_feature = None
+    merged_layer.ResetReading()
+    return merged_ds, merged_layer
+
+
 def rasterize_to_array(
     reference: gdal.Dataset,
     vector_ds: gdal.Dataset,
     layer_names: tuple[str, ...],
     all_touched: bool = False,
 ) -> np.ndarray:
+    merged_ds, merged_layer = merge_vector_layers(vector_ds, layer_names, "merged_rasterize_input")
     driver = gdal.GetDriverByName("MEM")
     ds = driver.Create("", reference.RasterXSize, reference.RasterYSize, 1, gdal.GDT_Byte)
     ds.SetGeoTransform(reference.GetGeoTransform())
@@ -102,23 +128,19 @@ def rasterize_to_array(
     band = ds.GetRasterBand(1)
     band.Fill(0)
 
-    for layer_name in layer_names:
-        layer = vector_ds.GetLayerByName(layer_name)
-        if layer is None:
-            raise ValueError(f"Missing vector layer: {layer_name}")
-        layer.ResetReading()
-        error = gdal.RasterizeLayer(
-            ds,
-            [1],
-            layer,
-            burn_values=[1],
-            options=[f"ALL_TOUCHED={str(all_touched).upper()}"],
-        )
-        if error != 0:
-            raise RuntimeError(f"Failed to rasterize layer {layer_name}")
+    error = gdal.RasterizeLayer(
+        ds,
+        [1],
+        merged_layer,
+        burn_values=[1],
+        options=[f"ALL_TOUCHED={str(all_touched).upper()}"],
+    )
+    if error != 0:
+        raise RuntimeError(f"Failed to rasterize merged layer: {', '.join(layer_names)}")
 
     array = band.ReadAsArray().astype(np.uint8)
     ds = None
+    merged_ds = None
     return array
 
 

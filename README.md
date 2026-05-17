@@ -410,6 +410,9 @@ single Sentinel region folder, and `--overwrite` only when regenerating labels.
 Pass `--all-touched` if every pixel touched by a UNOSAT polygon should be
 burned into the mask.
 
+UNOSAT layers are merged by mask group before rasterization. For example,
+`label_flood_binary.tif` rasterizes the merged `FloodExtent_*` layer group.
+
 `label_valid_mask.tif` is clipped to the matching district/city ROI from:
 
 ```text

@@ -1,12 +1,15 @@
 import unittest
 from pathlib import Path
 
+from osgeo import ogr
+
 from scripts.rasterize_unosat_labels import (
     LabelLayerSets,
     apply_roi_mask,
     classify_unosat_layers,
     find_admin_boundary,
     find_s1_reference,
+    merge_vector_layers,
     output_region_name,
 )
 
@@ -74,6 +77,29 @@ class RasterizeUnosatLabelTests(unittest.TestCase):
         roi = [[1, 0, 1], [1, 1, 0]]
 
         self.assertEqual(apply_roi_mask(valid, roi), [[1, 0, 0], [1, 0, 0]])
+
+    def test_merge_vector_layers_combines_features_into_one_layer_before_rasterizing(self):
+        driver = ogr.GetDriverByName("MEM")
+        source = driver.CreateDataSource("source")
+        for layer_name, x in (("FloodA", 0), ("FloodB", 10)):
+            layer = source.CreateLayer(layer_name, geom_type=ogr.wkbPolygon)
+            feature = ogr.Feature(layer.GetLayerDefn())
+            ring = ogr.Geometry(ogr.wkbLinearRing)
+            ring.AddPoint(x, 0)
+            ring.AddPoint(x + 1, 0)
+            ring.AddPoint(x + 1, 1)
+            ring.AddPoint(x, 1)
+            ring.AddPoint(x, 0)
+            polygon = ogr.Geometry(ogr.wkbPolygon)
+            polygon.AddGeometry(ring)
+            feature.SetGeometry(polygon)
+            layer.CreateFeature(feature)
+
+        merged_ds, merged_layer = merge_vector_layers(source, ("FloodA", "FloodB"), "merged_flood")
+
+        self.assertEqual(merged_layer.GetName(), "merged_flood")
+        self.assertEqual(merged_layer.GetFeatureCount(), 2)
+        self.assertIsNotNone(merged_ds)
 
     def test_find_s1_reference_requires_exactly_one_s1_tif(self):
         with self.subTest("one S1"):
