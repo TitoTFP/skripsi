@@ -393,6 +393,32 @@ dataset/preprocessing_verification_report.csv
 
 ## Scripts
 
+### UNOSAT label rasterization
+
+```bash
+uv run python -m scripts.rasterize_unosat_labels
+```
+
+Creates or skips existing rasters under:
+
+```text
+dataset/labels_unosat_rasterized/
+```
+
+Use `--dry-run` to inspect planned outputs, `--region "<folder name>"` for a
+single Sentinel region folder, and `--overwrite` only when regenerating labels.
+Pass `--all-touched` if every pixel touched by a UNOSAT polygon should be
+burned into the mask.
+
+`label_valid_mask.tif` is clipped to the matching district/city ROI from:
+
+```text
+dataset/batas admin indo/
+```
+
+So the valid label area is `UNOSAT AnalysisExtent ∩ wilayah administrative ROI`
+on the Sentinel-1 grid.
+
 ### Feature preprocessing
 
 ```bash
@@ -453,7 +479,7 @@ tile_counts {'train': 983, 'val': 36, 'test': 102}
 ### Unit tests
 
 ```bash
-uv run python -m unittest tests.test_preprocessing_helpers tests.test_training_data tests.test_models tests.test_training_loop -v
+uv run python -m unittest tests.test_preprocessing_helpers tests.test_rasterize_unosat_labels tests.test_training_data tests.test_models tests.test_training_loop -v
 ```
 
 Expected:
@@ -634,6 +660,7 @@ uv sync
 │       └── procanet/
 ├── scripts/
 │   ├── preprocessing_utils.py
+│   ├── rasterize_unosat_labels.py
 │   ├── preprocess_features.py
 │   ├── make_tiles.py
 │   ├── make_procanet_tiles.py
