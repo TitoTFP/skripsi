@@ -40,6 +40,9 @@ water_river=1 -> optional exclusion/control mask, not main target
 - [x] UNOSAT flood label sudah dirasterize ke grid Sentinel.
 - [x] UNOSAT valid analysis extent sudah dirasterize ke grid Sentinel.
 - [x] UNOSAT WaterExtent + River sudah digabung dan dirasterize sebagai mask tambahan.
+- [x] Geometri UNOSAT invalid/kompleks diperbaiki dengan `MakeValid()` sebelum rasterisasi.
+- [x] Rasterisasi UNOSAT dilakukan per-layer, lalu mask hasil raster digabung dengan OR/max.
+- [x] `label_valid_mask.tif` dipotong dengan ROI wilayah administratif.
 - [x] Label raster tersedia di `dataset/labels_unosat_rasterized/`.
 - [x] Semua label raster sudah diverifikasi align dengan S1.
 - [x] Semua label raster hanya berisi nilai `0/1`.
@@ -106,6 +109,8 @@ label_water_river_mask.tif
 ## Keputusan Label
 
 - `label_flood_binary.tif` hanya memakai `FloodExtent_*` dari UNOSAT.
+- `FloodExtent_*` dirasterize per-layer setelah `MakeValid()`, lalu digabung sebagai flood binary mask.
+- `label_valid_mask.tif` adalah `AnalysisExtent_*` yang sudah dipotong ROI wilayah administratif dari `dataset/batas admin indo/`.
 - `WaterExtent_*` dan `ST2_20251129_River_AcehProvince` tidak dimasukkan sebagai flood `1`.
 - `WaterExtent_*` dan `River` dipakai sebagai `label_water_river_mask.tif`.
 - Pixel luar `label_valid_mask.tif` wajib di-ignore saat training/evaluasi.

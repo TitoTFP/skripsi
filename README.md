@@ -31,10 +31,10 @@ Ringkasan tile:
 
 | Split | Tile |
 |---|---:|
-| Train | 983 |
-| Validation | 36 |
-| Test | 102 |
-| Total | 1121 |
+| Train | 1001 |
+| Validation | 44 |
+| Test | 150 |
+| Total | 1195 |
 
 Semua 11 wilayah masuk dataset:
 
@@ -341,10 +341,10 @@ Tile counts sama dengan export 7-channel:
 
 | Split | Tile |
 |---|---:|
-| Train | 983 |
-| Validation | 36 |
-| Test | 102 |
-| Total | 1121 |
+| Train | 1001 |
+| Validation | 44 |
+| Test | 150 |
+| Total | 1195 |
 
 ## Split Policy
 
@@ -371,17 +371,17 @@ Tile summary:
 
 | Region | Split | Tiles | Positive | Background | Flood px | Valid px | S2 valid px |
 |---|---|---:|---:|---:|---:|---:|---:|
-| Aceh_Besar | train | 128 | 64 | 64 | 628789 | 33341952 | 21347199 |
-| Aceh_Tamiang | train | 116 | 83 | 33 | 1223088 | 29644288 | 168 |
-| Aceh_Timur | train | 267 | 129 | 138 | 4599286 | 68784000 | 27833115 |
-| Aceh_Utara | train | 122 | 80 | 42 | 4194022 | 31562240 | 19914945 |
-| Agam | train | 96 | 36 | 60 | 359611 | 25003008 | 0 |
-| Banda_Aceh | train | 7 | 7 | 0 | 23904 | 709340 | 277784 |
-| Bireuen | train | 73 | 40 | 33 | 546763 | 19130368 | 14371660 |
-| Langsa | train | 13 | 13 | 0 | 264247 | 2893273 | 0 |
-| Pasaman_Barat | train | 161 | 72 | 89 | 385168 | 41810944 | 1332 |
-| Pidie_Jaya | val | 36 | 18 | 18 | 325779 | 9154560 | 6873287 |
-| Pidie | test | 102 | 51 | 51 | 1052181 | 26336256 | 18592985 |
+| Aceh_Besar | train | 131 | 78 | 53 | 1372818 | 26658211 | 21355157 |
+| Aceh_Tamiang | train | 116 | 83 | 33 | 1143570 | 20318200 | 168 |
+| Aceh_Timur | train | 270 | 140 | 130 | 6830461 | 51776886 | 28023197 |
+| Aceh_Utara | train | 127 | 88 | 39 | 5711905 | 24994018 | 19979582 |
+| Agam | train | 96 | 36 | 60 | 332115 | 19769178 | 0 |
+| Banda_Aceh | train | 9 | 9 | 0 | 111116 | 568214 | 463066 |
+| Bireuen | train | 78 | 50 | 28 | 1040754 | 16608671 | 14656091 |
+| Langsa | train | 13 | 13 | 0 | 247096 | 1666884 | 0 |
+| Pasaman_Barat | train | 161 | 72 | 89 | 367204 | 35542026 | 1332 |
+| Pidie_Jaya | val | 44 | 25 | 19 | 656176 | 8759476 | 8011161 |
+| Pidie | test | 150 | 75 | 75 | 2345164 | 28633851 | 27426891 |
 
 Full CSV:
 
@@ -410,8 +410,12 @@ single Sentinel region folder, and `--overwrite` only when regenerating labels.
 Pass `--all-touched` if every pixel touched by a UNOSAT polygon should be
 burned into the mask.
 
-UNOSAT layers are merged by mask group before rasterization. For example,
-`label_flood_binary.tif` rasterizes the merged `FloodExtent_*` layer group.
+UNOSAT geometries are repaired with `MakeValid()` before rasterization because
+some FileGDB layers contain invalid/complex geometry. Layers are then
+rasterized one by one and merged by mask group with a pixelwise OR/max
+operation. For example, each `FloodExtent_*` layer is rasterized first, then
+those flood rasters are merged into
+`label_flood_binary.tif`.
 
 `label_valid_mask.tif` is clipped to the matching district/city ROI from:
 
@@ -463,7 +467,7 @@ dataset/tiles/procanet/
 Expected output:
 
 ```text
-procanet_tile_counts {'train': 983, 'val': 36, 'test': 102}
+procanet_tile_counts {'train': 1001, 'val': 44, 'test': 150}
 ```
 
 ### Verification
@@ -476,7 +480,7 @@ Expected output:
 
 ```text
 feature_regions 11
-tile_counts {'train': 983, 'val': 36, 'test': 102}
+tile_counts {'train': 1001, 'val': 44, 'test': 150}
 ```
 
 ### Unit tests

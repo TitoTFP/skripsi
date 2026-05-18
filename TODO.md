@@ -46,20 +46,22 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
   - `label_flood_binary.tif` untuk flood.
   - `label_valid_mask.tif` untuk area valid analisis.
   - `label_water_river_mask.tif` untuk water/river auxiliary mask.
+  - Rasterisasi UNOSAT sekarang memperbaiki geometri invalid dengan `MakeValid()`, rasterize per-layer, lalu merge raster mask dengan OR/max.
+  - `label_valid_mask.tif` dipotong dengan ROI wilayah administratif dari `dataset/batas admin indo/`.
   - UNOSAT dipakai sebagai proxy label utama menggantikan pseudo-label rule-based proposal awal.
 
 - [x] Dataset tile siap training U-Net sudah dibuat.
   - Output ada di `dataset/tiles/7ch/{train,val,test}/`.
   - Ukuran tile: `512 x 512`.
-  - Total tile saat dicek: `1121`.
-  - Split README saat ini: train `983`, validation `36`, test `102`.
+  - Total tile saat dicek: `1195`.
+  - Split README saat ini: train `1001`, validation `44`, test `150`.
 
 - [x] Dataset siap ProCANet dua encoder sudah dibuat.
   - Output ada di `dataset/tiles/procanet/{train,val,test}/`.
   - Encoder 1: `VV`, `VH`, `Hue`, `Saturation`, `Value`, `Slope`, `HAND`.
   - Encoder 2: `VV`, `VH`.
   - Desain ini mengikuti pola paper ProCANet: encoder utama membawa konteks lengkap, encoder kedua mengulang modalitas air paling informatif. Untuk kasus ini dipilih SAR karena lebih stabil saat awan/hujan dibanding HSV.
-  - Total tile sama dengan dataset 7-channel: train `983`, validation `36`, test `102`.
+  - Total tile sama dengan dataset 7-channel: train `1001`, validation `44`, test `150`.
 
 - [x] Ringkasan dan verifikasi preprocessing sudah tersedia.
   - `dataset/preprocessing_summary.csv`

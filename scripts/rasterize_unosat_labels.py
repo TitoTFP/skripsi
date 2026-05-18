@@ -89,38 +89,48 @@ def gdb_layer_names(gdb: gdal.Dataset) -> list[str]:
     return [gdb.GetLayerByIndex(idx).GetName() for idx in range(gdb.GetLayerCount())]
 
 
-def merge_vector_layers(vector_ds: gdal.Dataset, layer_names: tuple[str, ...], merged_name: str) -> tuple[ogr.DataSource, ogr.Layer]:
+def repair_layer_geometries(layer: ogr.Layer, repaired_name: str) -> tuple[ogr.DataSource, ogr.Layer]:
     driver = ogr.GetDriverByName("MEM")
-    merged_ds = driver.CreateDataSource(f"{merged_name}_ds")
-    first_layer = vector_ds.GetLayerByName(layer_names[0])
-    if first_layer is None:
-        raise ValueError(f"Missing vector layer: {layer_names[0]}")
+    repaired_ds = driver.CreateDataSource(f"{repaired_name}_ds")
+    repaired_layer = repaired_ds.CreateLayer(repaired_name, srs=layer.GetSpatialRef(), geom_type=ogr.wkbUnknown)
 
-    merged_layer = merged_ds.CreateLayer(merged_name, srs=first_layer.GetSpatialRef(), geom_type=ogr.wkbUnknown)
-    for layer_name in layer_names:
-        source_layer = vector_ds.GetLayerByName(layer_name)
-        if source_layer is None:
-            raise ValueError(f"Missing vector layer: {layer_name}")
-        source_layer.ResetReading()
-        for source_feature in source_layer:
-            geometry = source_feature.GetGeometryRef()
-            if geometry is None:
-                continue
-            merged_feature = ogr.Feature(merged_layer.GetLayerDefn())
-            merged_feature.SetGeometry(geometry.Clone())
-            merged_layer.CreateFeature(merged_feature)
-            merged_feature = None
-    merged_layer.ResetReading()
-    return merged_ds, merged_layer
+    layer.ResetReading()
+    for source_feature in layer:
+        geometry = source_feature.GetGeometryRef()
+        if geometry is None or geometry.IsEmpty():
+            continue
+        repaired_geometry = geometry.MakeValid()
+        if repaired_geometry is None or repaired_geometry.IsEmpty():
+            continue
+        repaired_feature = ogr.Feature(repaired_layer.GetLayerDefn())
+        repaired_feature.SetGeometry(repaired_geometry)
+        repaired_layer.CreateFeature(repaired_feature)
+        repaired_feature = None
+
+    repaired_layer.ResetReading()
+    return repaired_ds, repaired_layer
 
 
-def rasterize_to_array(
+def merge_binary_masks(masks) -> list[list[int]]:
+    if not masks:
+        raise ValueError("No raster masks to merge")
+    merged = np.zeros_like(np.asarray(masks[0], dtype=np.uint8), dtype=np.uint8)
+    for mask in masks:
+        merged |= np.asarray(mask, dtype=np.uint8) > 0
+    return merged.astype(np.uint8).tolist()
+
+
+def rasterize_one_layer_to_array(
     reference: gdal.Dataset,
     vector_ds: gdal.Dataset,
-    layer_names: tuple[str, ...],
+    layer_name: str,
     all_touched: bool = False,
 ) -> np.ndarray:
-    merged_ds, merged_layer = merge_vector_layers(vector_ds, layer_names, "merged_rasterize_input")
+    layer = vector_ds.GetLayerByName(layer_name)
+    if layer is None:
+        raise ValueError(f"Missing vector layer: {layer_name}")
+    repaired_ds, repaired_layer = repair_layer_geometries(layer, f"repaired_{layer_name}")
+
     driver = gdal.GetDriverByName("MEM")
     ds = driver.Create("", reference.RasterXSize, reference.RasterYSize, 1, gdal.GDT_Byte)
     ds.SetGeoTransform(reference.GetGeoTransform())
@@ -131,17 +141,30 @@ def rasterize_to_array(
     error = gdal.RasterizeLayer(
         ds,
         [1],
-        merged_layer,
+        repaired_layer,
         burn_values=[1],
         options=[f"ALL_TOUCHED={str(all_touched).upper()}"],
     )
     if error != 0:
-        raise RuntimeError(f"Failed to rasterize merged layer: {', '.join(layer_names)}")
+        raise RuntimeError(f"Failed to rasterize layer: {layer_name}")
 
     array = band.ReadAsArray().astype(np.uint8)
     ds = None
-    merged_ds = None
+    repaired_ds = None
     return array
+
+
+def rasterize_to_array(
+    reference: gdal.Dataset,
+    vector_ds: gdal.Dataset,
+    layer_names: tuple[str, ...],
+    all_touched: bool = False,
+) -> np.ndarray:
+    masks = [
+        rasterize_one_layer_to_array(reference, vector_ds, layer_name, all_touched=all_touched)
+        for layer_name in layer_names
+    ]
+    return np.asarray(merge_binary_masks(masks), dtype=np.uint8)
 
 
 def write_byte_mask(reference: gdal.Dataset, output_path: Path, array: np.ndarray, overwrite: bool = False) -> None:

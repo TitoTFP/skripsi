@@ -9,8 +9,9 @@ from scripts.rasterize_unosat_labels import (
     classify_unosat_layers,
     find_admin_boundary,
     find_s1_reference,
-    merge_vector_layers,
+    merge_binary_masks,
     output_region_name,
+    repair_layer_geometries,
 )
 
 
@@ -78,28 +79,39 @@ class RasterizeUnosatLabelTests(unittest.TestCase):
 
         self.assertEqual(apply_roi_mask(valid, roi), [[1, 0, 0], [1, 0, 0]])
 
-    def test_merge_vector_layers_combines_features_into_one_layer_before_rasterizing(self):
+    def test_merge_binary_masks_uses_pixelwise_or_after_per_layer_rasterization(self):
+        masks = [
+            [[1, 0, 0], [0, 1, 0]],
+            [[0, 1, 0], [0, 1, 1]],
+            [[0, 0, 0], [1, 0, 0]],
+        ]
+
+        self.assertEqual(merge_binary_masks(masks), [[1, 1, 0], [1, 1, 1]])
+
+    def test_merge_binary_masks_rejects_empty_layer_group(self):
+        with self.assertRaisesRegex(ValueError, "No raster masks"):
+            merge_binary_masks([])
+
+    def test_repair_layer_geometries_makes_invalid_polygon_rasterizable(self):
         driver = ogr.GetDriverByName("MEM")
         source = driver.CreateDataSource("source")
-        for layer_name, x in (("FloodA", 0), ("FloodB", 10)):
-            layer = source.CreateLayer(layer_name, geom_type=ogr.wkbPolygon)
-            feature = ogr.Feature(layer.GetLayerDefn())
-            ring = ogr.Geometry(ogr.wkbLinearRing)
-            ring.AddPoint(x, 0)
-            ring.AddPoint(x + 1, 0)
-            ring.AddPoint(x + 1, 1)
-            ring.AddPoint(x, 1)
-            ring.AddPoint(x, 0)
-            polygon = ogr.Geometry(ogr.wkbPolygon)
-            polygon.AddGeometry(ring)
-            feature.SetGeometry(polygon)
-            layer.CreateFeature(feature)
+        layer = source.CreateLayer("invalid", geom_type=ogr.wkbPolygon)
+        feature = ogr.Feature(layer.GetLayerDefn())
+        ring = ogr.Geometry(ogr.wkbLinearRing)
+        for x, y in [(0, 0), (2, 2), (0, 2), (2, 0), (0, 0)]:
+            ring.AddPoint(x, y)
+        polygon = ogr.Geometry(ogr.wkbPolygon)
+        polygon.AddGeometry(ring)
+        self.assertFalse(polygon.IsValid())
+        feature.SetGeometry(polygon)
+        layer.CreateFeature(feature)
 
-        merged_ds, merged_layer = merge_vector_layers(source, ("FloodA", "FloodB"), "merged_flood")
+        repaired_ds, repaired_layer = repair_layer_geometries(layer, "repaired")
+        repaired_feature = next(iter(repaired_layer))
+        repaired_geometry = repaired_feature.GetGeometryRef()
 
-        self.assertEqual(merged_layer.GetName(), "merged_flood")
-        self.assertEqual(merged_layer.GetFeatureCount(), 2)
-        self.assertIsNotNone(merged_ds)
+        self.assertIsNotNone(repaired_ds)
+        self.assertTrue(repaired_geometry.IsValid())
 
     def test_find_s1_reference_requires_exactly_one_s1_tif(self):
         with self.subTest("one S1"):
