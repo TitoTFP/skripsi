@@ -14,6 +14,7 @@ FEATURE_ROOT = ROOT / "dataset/features_preprocessed"
 S1_ROOT = ROOT / "dataset/satelit raw"
 LABEL_ROOT = ROOT / "dataset/labels_unosat_rasterized"
 TILE_ROOT = ROOT / "dataset/tiles/7ch"
+TILE_BY_REGION_ROOT = TILE_ROOT / "by_region"
 REPORT_PATH = ROOT / "dataset/preprocessing_verification_report.csv"
 FEATURE_FILES = [
     "vv_norm.tif",
@@ -106,12 +107,12 @@ def verify_features() -> list[dict[str, object]]:
 
 
 def verify_tiles() -> dict[str, int]:
-    counts = {"train": 0, "val": 0, "test": 0}
-    for split in counts:
-        split_dir = TILE_ROOT / split
-        if not split_dir.exists():
+    counts: dict[str, int] = {}
+    for region_dir in sorted(TILE_BY_REGION_ROOT.glob("*")):
+        if not region_dir.is_dir():
             continue
-        for tile in split_dir.glob("*.npz"):
+        counts[region_dir.name] = 0
+        for tile in region_dir.glob("*.npz"):
             data = np.load(tile)
             if data["x"].shape != (7, 512, 512):
                 raise RuntimeError(f"x shape {tile}: {data['x'].shape}")
@@ -125,7 +126,7 @@ def verify_tiles() -> dict[str, int]:
                 raise RuntimeError(f"non-finite x {tile}")
             if float(data["x"].min()) < -1e-6 or float(data["x"].max()) > 1.000001:
                 raise RuntimeError(f"x range {tile}: {data['x'].min()}, {data['x'].max()}")
-            counts[split] += 1
+            counts[region_dir.name] += 1
     return counts
 
 
@@ -138,7 +139,8 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(rows)
     print("feature_regions", len(rows))
-    print("tile_counts", tile_counts)
+    print("tile_regions", len(tile_counts))
+    print("tile_counts_by_region", tile_counts)
 
 
 if __name__ == "__main__":

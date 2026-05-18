@@ -27,14 +27,13 @@ dataset/feature_preprocessing_summary.csv
 dataset/preprocessing_verification_report.csv
 ```
 
-Ringkasan tile:
+Ringkasan tile region-first:
 
-| Split | Tile |
+| Group | Tile |
 |---|---:|
-| Train | 1001 |
-| Validation | 44 |
-| Test | 150 |
-| Total | 1195 |
+| Cross-validation regions | 3930 |
+| Final test Aceh_Utara | 493 |
+| Total | 4423 |
 
 Semua 11 wilayah masuk dataset:
 
@@ -249,7 +248,7 @@ Semua channel Float32 dan berada dalam range `[0,1]`.
 Tiles disimpan sebagai compressed NumPy `.npz`:
 
 ```text
-dataset/tiles/7ch/{train,val,test}/*.npz
+dataset/tiles/7ch/by_region/<region>/*.npz
 ```
 
 Setiap file berisi:
@@ -311,7 +310,7 @@ effective_valid_mask = valid_mask & feature_valid_mask
 ProCANet export tersedia di:
 
 ```text
-dataset/tiles/procanet/{train,val,test}/*.npz
+dataset/tiles/procanet/by_region/<region>/*.npz
 ```
 
 Export ini mengikuti insight paper ProCANet (`docs/referensi/2501.11923v1.pdf`):
@@ -337,51 +336,56 @@ Setiap file berisi:
 | `row` | scalar | Source raster row offset |
 | `col` | scalar | Source raster column offset |
 
-Tile counts sama dengan export 7-channel:
+Tile counts sama dengan export 7-channel region-first:
 
-| Split | Tile |
+| Group | Tile |
 |---|---:|
-| Train | 1001 |
-| Validation | 44 |
-| Test | 150 |
-| Total | 1195 |
+| Cross-validation regions | 3930 |
+| Final test Aceh_Utara | 493 |
+| Total | 4423 |
 
-## Split Policy
+## Spatial Cross-Validation Policy
 
-Split berbasis wilayah untuk mengurangi spatial leakage:
+Split berbasis wilayah untuk mengurangi spatial leakage. `Aceh_Utara` dikunci
+sebagai final test holdout dan tidak pernah masuk train/validation. Sepuluh
+wilayah lain dipakai untuk 5-fold spatial cross-validation:
 
-| Split | Regions |
-|---|---|
-| Train | Aceh_Besar, Aceh_Tamiang, Aceh_Timur, Aceh_Utara, Agam, Bireuen, Banda_Aceh, Langsa, Pasaman_Barat |
-| Validation | Pidie_Jaya |
-| Test | Pidie |
+| Fold | Validation regions | Train regions | Test region |
+|---:|---|---:|---|
+| 0 | Pidie, Pidie_Jaya | 8 wilayah lain | Aceh_Utara |
+| 1 | Aceh_Besar, Banda_Aceh | 8 wilayah lain | Aceh_Utara |
+| 2 | Aceh_Tamiang, Aceh_Timur | 8 wilayah lain | Aceh_Utara |
+| 3 | Bireuen, Langsa | 8 wilayah lain | Aceh_Utara |
+| 4 | Agam, Pasaman_Barat | 8 wilayah lain | Aceh_Utara |
 
-Tile size:
+Tile size dan stride:
 
 ```text
-512 x 512
+tile_size = 512 x 512
+stride = 256
 ```
 
 Tile positive selalu dipertahankan.
-Background-only tile disampling deterministik agar kelas tidak terlalu timpang.
+Background-only tile disampling deterministik per wilayah agar kelas tidak
+terlalu timpang.
 
 ## Summary Statistics
 
 Tile summary:
 
-| Region | Split | Tiles | Positive | Background | Flood px | Valid px | S2 valid px |
+| Region | Group | Tiles | Positive | Background | Flood px | Valid px | S2 valid px |
 |---|---|---:|---:|---:|---:|---:|---:|
-| Aceh_Besar | train | 131 | 78 | 53 | 1372818 | 26658211 | 21355157 |
-| Aceh_Tamiang | train | 116 | 83 | 33 | 1143570 | 20318200 | 168 |
-| Aceh_Timur | train | 270 | 140 | 130 | 6830461 | 51776886 | 28023197 |
-| Aceh_Utara | train | 127 | 88 | 39 | 5711905 | 24994018 | 19979582 |
-| Agam | train | 96 | 36 | 60 | 332115 | 19769178 | 0 |
-| Banda_Aceh | train | 9 | 9 | 0 | 111116 | 568214 | 463066 |
-| Bireuen | train | 78 | 50 | 28 | 1040754 | 16608671 | 14656091 |
-| Langsa | train | 13 | 13 | 0 | 247096 | 1666884 | 0 |
-| Pasaman_Barat | train | 161 | 72 | 89 | 367204 | 35542026 | 1332 |
-| Pidie_Jaya | val | 44 | 25 | 19 | 656176 | 8759476 | 8011161 |
-| Pidie | test | 150 | 75 | 75 | 2345164 | 28633851 | 27426891 |
+| Aceh_Besar | cv | 518 | 315 | 203 | 5429056 | 106956513 | 86170341 |
+| Aceh_Tamiang | cv | 465 | 328 | 137 | 4578520 | 82307919 | 672 |
+| Aceh_Timur | cv | 1063 | 543 | 520 | 26605176 | 206802875 | 111438934 |
+| Aceh_Utara | test | 493 | 332 | 161 | 22122708 | 102158650 | 81365271 |
+| Agam | cv | 278 | 139 | 139 | 1257081 | 54576695 | 0 |
+| Banda_Aceh | cv | 16 | 16 | 0 | 326952 | 2532433 | 2130841 |
+| Bireuen | cv | 303 | 186 | 117 | 3827030 | 67149979 | 59076594 |
+| Langsa | cv | 41 | 37 | 4 | 933776 | 7395290 | 0 |
+| Pasaman_Barat | cv | 522 | 261 | 261 | 1462154 | 115359798 | 2496 |
+| Pidie | cv | 572 | 286 | 286 | 9351866 | 110864777 | 106314945 |
+| Pidie_Jaya | cv | 152 | 83 | 69 | 2099420 | 34130353 | 31261734 |
 
 Full CSV:
 
@@ -467,7 +471,7 @@ dataset/tiles/procanet/
 Expected output:
 
 ```text
-procanet_tile_counts {'train': 1001, 'val': 44, 'test': 150}
+procanet_tile_counts {'Aceh_Besar': 518, ..., 'Aceh_Utara': 493, ..., 'Pidie_Jaya': 152}
 ```
 
 ### Verification
@@ -480,7 +484,8 @@ Expected output:
 
 ```text
 feature_regions 11
-tile_counts {'train': 1001, 'val': 44, 'test': 150}
+tile_regions 11
+tile_counts_by_region {'Aceh_Besar': 518, ..., 'Aceh_Utara': 493, ..., 'Pidie_Jaya': 152}
 ```
 
 ### Unit tests
@@ -492,7 +497,7 @@ uv run python -m unittest tests.test_preprocessing_helpers tests.test_rasterize_
 Expected:
 
 ```text
-Ran 30 tests
+Ran 44 tests
 OK
 ```
 
@@ -503,9 +508,10 @@ Baseline U-Net:
 ```bash
 uv run python -m scripts.train_segmentation \
   --architecture unet \
+  --fold 0 \
   --epochs 50 \
   --batch-size 8 \
-  --output-dir runs/baseline_unet
+  --output-dir runs/unet/fold_0
 ```
 
 ProCANet:
@@ -513,21 +519,23 @@ ProCANet:
 ```bash
 uv run python -m scripts.train_segmentation \
   --architecture procanet \
+  --fold 0 \
   --epochs 50 \
   --batch-size 4 \
-  --output-dir runs/procanet
+  --output-dir runs/procanet/fold_0
 ```
 
 Default training uses AdamW, `25` epochs, batch size `2`, learning rate `1e-4`,
 weight decay `1e-4`, early stopping patience `5`, `ReduceLROnPlateau` on
 validation IoU, gradient accumulation step `1`, AMP disabled, and auto-selects
-CUDA when available. Best checkpoints are saved by validation IoU:
+CUDA when available. Pass `--fold 0` through `--fold 4` for spatial
+cross-validation. Best checkpoints are saved by validation IoU:
 
 ```text
-runs/{architecture}/best.pt
+runs/{architecture}/fold_{k}/best.pt
 ```
 
-The current finished experiment outputs are:
+Legacy finished experiment outputs before 5-fold CV are:
 
 ```text
 runs/baseline_unet/best.pt
@@ -537,7 +545,7 @@ runs/procanet/best.pt
 Per-epoch metrics are written to:
 
 ```text
-runs/{architecture}/metrics.csv
+runs/{architecture}/fold_{k}/metrics.csv
 ```
 
 Metrics columns:
@@ -554,7 +562,7 @@ schema without `lr`.
 The resolved training config is written to:
 
 ```text
-runs/{architecture}/config.json
+runs/{architecture}/fold_{k}/config.json
 ```
 
 Useful overrides:
@@ -562,6 +570,7 @@ Useful overrides:
 ```bash
 uv run python -m scripts.train_segmentation \
   --architecture unet \
+  --fold 0 \
   --epochs 50 \
   --batch-size 4 \
   --lr 5e-5 \
@@ -580,6 +589,7 @@ Water/river-as-flood experiment:
 ```bash
 uv run python -m scripts.train_segmentation \
   --architecture unet \
+  --fold 0 \
   --water-river \
   --amp \
   --gradient-accumulation-steps 2

@@ -8,6 +8,8 @@ from scripts.preprocessing_utils import (
     PROCANET_ENCODER1_CHANNELS,
     PROCANET_ENCODER2_CHANNELS,
     choose_split,
+    fold_regions,
+    tile_offsets,
     normalize_db,
     rgb_to_hsv,
     should_keep_tile,
@@ -52,9 +54,46 @@ class PreprocessingHelperTests(unittest.TestCase):
         self.assertFalse(should_keep_tile(label_valid, feature_valid, flood))
 
     def test_choose_split_matches_region_policy(self):
-        self.assertEqual(choose_split("Pidie_Jaya"), "val")
-        self.assertEqual(choose_split("Pidie"), "test")
+        self.assertEqual(choose_split("Aceh_Utara"), "test")
+        self.assertEqual(choose_split("Pidie_Jaya"), "train")
+        self.assertEqual(choose_split("Pidie"), "train")
         self.assertEqual(choose_split("Aceh_Timur"), "train")
+
+    def test_fold_regions_keep_aceh_utara_as_final_test(self):
+        seen_val_regions: set[str] = set()
+        for fold in range(5):
+            train_regions, val_regions, test_regions = fold_regions(fold)
+
+            self.assertEqual(test_regions, ("Aceh_Utara",))
+            self.assertEqual(len(val_regions), 2)
+            self.assertEqual(len(train_regions), 8)
+            self.assertNotIn("Aceh_Utara", train_regions)
+            self.assertNotIn("Aceh_Utara", val_regions)
+            self.assertTrue(set(train_regions).isdisjoint(val_regions))
+            seen_val_regions.update(val_regions)
+
+        self.assertEqual(
+            seen_val_regions,
+            {
+                "Aceh_Besar",
+                "Aceh_Tamiang",
+                "Aceh_Timur",
+                "Agam",
+                "Banda_Aceh",
+                "Bireuen",
+                "Langsa",
+                "Pasaman_Barat",
+                "Pidie",
+                "Pidie_Jaya",
+            },
+        )
+
+    def test_tile_offsets_cover_edges_without_duplicates(self):
+        offsets = tile_offsets(length=1200, tile_size=512, stride=256)
+
+        self.assertEqual(offsets, [0, 256, 512, 688])
+        self.assertEqual(len(offsets), len(set(offsets)))
+        self.assertEqual(offsets[-1] + 512, 1200)
 
     def test_split_procanet_encoders_repeats_sar_as_water_modality(self):
         stack = np.arange(7 * 2 * 2, dtype=np.float32).reshape(7, 2, 2)

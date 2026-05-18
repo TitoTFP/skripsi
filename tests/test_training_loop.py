@@ -141,6 +141,8 @@ class TrainingLoopTests(unittest.TestCase):
             "0.25",
             "--lr-patience",
             "3",
+            "--fold",
+            "4",
         ]
         with patch("sys.argv", argv):
             args = parse_args()
@@ -151,6 +153,7 @@ class TrainingLoopTests(unittest.TestCase):
         self.assertEqual(args.lr_scheduler, "reduce-on-plateau")
         self.assertEqual(args.lr_factor, 0.25)
         self.assertEqual(args.lr_patience, 3)
+        self.assertEqual(args.fold, 4)
 
     def test_build_scheduler_reduces_lr_when_validation_iou_stagnates(self):
         model = TinySegmentationModel("unet")

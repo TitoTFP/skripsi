@@ -7,7 +7,8 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from training.augmentations import apply_spatial_transform, random_spatial_transform
+from scripts.preprocessing_utils import regions_for_split
+from training.augmentations import apply_feature_augmentation, apply_spatial_transform, random_spatial_transform
 
 
 Architecture = Literal["unet", "procanet"]
@@ -28,6 +29,7 @@ class FloodTileDataset(Dataset):
         augment: bool | None = None,
         rng: np.random.Generator | None = None,
         water_river_as_flood: bool = False,
+        fold: int | None = None,
     ) -> None:
         self.split = split
         self.architecture = architecture.lower()
@@ -35,6 +37,7 @@ class FloodTileDataset(Dataset):
         self.rng = rng or np.random.default_rng()
         self.augment = (split == "train") if augment is None else bool(augment and split == "train")
         self.water_river_as_flood = water_river_as_flood
+        self.fold = fold
 
         if self.split not in VALID_SPLITS:
             raise ValueError(f"split must be one of {sorted(VALID_SPLITS)}, got {split!r}")
@@ -42,10 +45,10 @@ class FloodTileDataset(Dataset):
             raise ValueError(f"architecture must be one of {sorted(VALID_ARCHITECTURES)}, got {architecture!r}")
 
         tile_root = "7ch" if self.architecture == "unet" else "procanet"
-        self.tile_dir = self.root / tile_root / self.split
-        self.paths = sorted(self.tile_dir.glob("*.npz"))
+        self.tile_dir = self.root / tile_root
+        self.paths = self._collect_paths(tile_root)
         if not self.paths:
-            raise FileNotFoundError(f"no .npz tiles found in {self.tile_dir}")
+            raise FileNotFoundError(f"no .npz tiles found for split={self.split!r}, architecture={self.architecture!r}, fold={self.fold!r}")
 
     def __len__(self) -> int:
         return len(self.paths)
@@ -69,7 +72,16 @@ class FloodTileDataset(Dataset):
 
         if self.augment:
             sample = apply_spatial_transform(sample, random_spatial_transform(self.rng))
+            sample = apply_feature_augmentation(sample, self.rng)
         return sample
+
+    def _collect_paths(self, tile_root: str) -> list[Path]:
+        if self.fold is None:
+            return sorted((self.root / tile_root / self.split).glob("*.npz"))
+        paths: list[Path] = []
+        for region in regions_for_split(str(self.split), self.fold):
+            paths.extend(sorted((self.root / tile_root / "by_region" / region).glob("*.npz")))
+        return paths
 
     def _read_target(self, data: np.lib.npyio.NpzFile) -> torch.Tensor:
         target = data["y"].astype(bool, copy=False)

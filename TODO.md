@@ -51,17 +51,17 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
   - UNOSAT dipakai sebagai proxy label utama menggantikan pseudo-label rule-based proposal awal.
 
 - [x] Dataset tile siap training U-Net sudah dibuat.
-  - Output ada di `dataset/tiles/7ch/{train,val,test}/`.
-  - Ukuran tile: `512 x 512`.
-  - Total tile saat dicek: `1195`.
-  - Split README saat ini: train `1001`, validation `44`, test `150`.
+  - Output canonical ada di `dataset/tiles/7ch/by_region/<region>/`.
+  - Ukuran tile: `512 x 512`, stride overlap `256`.
+  - Total tile saat dicek: `4423`.
+  - Spatial CV: `Aceh_Utara` final test, 10 wilayah lain untuk 5-fold train/validation.
 
 - [x] Dataset siap ProCANet dua encoder sudah dibuat.
-  - Output ada di `dataset/tiles/procanet/{train,val,test}/`.
+  - Output canonical ada di `dataset/tiles/procanet/by_region/<region>/`.
   - Encoder 1: `VV`, `VH`, `Hue`, `Saturation`, `Value`, `Slope`, `HAND`.
   - Encoder 2: `VV`, `VH`.
   - Desain ini mengikuti pola paper ProCANet: encoder utama membawa konteks lengkap, encoder kedua mengulang modalitas air paling informatif. Untuk kasus ini dipilih SAR karena lebih stabil saat awan/hujan dibanding HSV.
-  - Total tile sama dengan dataset 7-channel: train `1001`, validation `44`, test `150`.
+  - Total tile sama dengan dataset 7-channel: `4423`.
 
 - [x] Ringkasan dan verifikasi preprocessing sudah tersedia.
   - `dataset/preprocessing_summary.csv`
@@ -78,8 +78,9 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
   - Jelaskan `FloodExtent_*` sebagai flood positif, `AnalysisExtent_*` sebagai valid mask, dan `WaterExtent_*`/river sebagai auxiliary mask.
 
 - [x] Implementasi dataset loader training.
-  - Loader U-Net perlu membaca `.npz` tile dari `dataset/tiles/7ch/`.
-  - Loader ProCANet perlu membaca `.npz` tile dari `dataset/tiles/procanet/`.
+  - Loader U-Net membaca `.npz` tile dari `dataset/tiles/7ch/`.
+  - Loader ProCANet membaca `.npz` tile dari `dataset/tiles/procanet/`.
+  - Loader mendukung mode fold via `fold=0..4` untuk spatial CV region-level.
   - Loader perlu mengembalikan feature tensor, `y`, `valid_mask`, dan metadata.
   - Loss dan metrik wajib mengabaikan piksel dengan effective mask `valid_mask & feature_valid_mask`.
   - Implemented in `training.datasets`, `training.losses`, and `training.metrics`.
@@ -87,6 +88,7 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
 - [x] Implementasi augmentasi data dinamis.
   - Rotasi 90/180/270 derajat.
   - Flip horizontal dan vertikal.
+  - Gaussian noise ringan dan channel dropout kecil hanya pada feature tensor.
   - Augmentasi hanya untuk split train.
   - Implemented in `training.augmentations`.
 
@@ -111,8 +113,9 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
   - Learning rate, batch size, epoch, weight decay, early stopping.
   - Logging train/validation loss dan metrik.
   - Training CLI tersedia di `scripts.train_segmentation`.
-  - Config tersimpan di `runs/{architecture}/config.json`.
-  - Metrics tersimpan di `runs/{architecture}/metrics.csv`.
+  - Spatial CV tersedia lewat `--fold 0..4`; default output menjadi `runs/{architecture}/fold_{k}` saat fold dipakai.
+  - Config tersimpan di `runs/{architecture}/fold_{k}/config.json` untuk mode fold.
+  - Metrics tersimpan di `runs/{architecture}/fold_{k}/metrics.csv` untuk mode fold.
 
 - [x] Implementasi opsi eksperimen label water/river sebagai flood.
   - Default tetap flood-only dari `label_flood_binary`.

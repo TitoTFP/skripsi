@@ -10,8 +10,18 @@ CHANNELS_7CH = ("VV", "VH", "Hue", "Saturation", "Value", "Slope", "HAND")
 PROCANET_ENCODER1_CHANNELS = CHANNELS_7CH
 PROCANET_ENCODER2_CHANNELS = ("VV", "VH")
 TILE_SIZE = 512
+TILE_STRIDE = 256
 VALID_COVERAGE_THRESHOLD = 0.70
 BAD_S2_REGIONS = {"Aceh_Tamiang", "Agam", "Langsa", "Pasaman_Barat"}
+TEST_REGION = "Aceh_Utara"
+SPATIAL_CV_FOLDS = (
+    ("Pidie", "Pidie_Jaya"),
+    ("Aceh_Besar", "Banda_Aceh"),
+    ("Aceh_Tamiang", "Aceh_Timur"),
+    ("Bireuen", "Langsa"),
+    ("Agam", "Pasaman_Barat"),
+)
+CV_REGIONS = tuple(region for fold in SPATIAL_CV_FOLDS for region in fold)
 
 
 def region_to_output_name(region: str) -> str:
@@ -23,11 +33,42 @@ def region_to_output_name(region: str) -> str:
 
 
 def choose_split(region: str) -> str:
-    if region == "Pidie_Jaya":
-        return "val"
-    if region == "Pidie":
+    if region == TEST_REGION:
         return "test"
     return "train"
+
+
+def fold_regions(fold: int) -> tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]]:
+    if fold < 0 or fold >= len(SPATIAL_CV_FOLDS):
+        raise ValueError(f"fold must be in 0..{len(SPATIAL_CV_FOLDS) - 1}, got {fold}")
+    val_regions = SPATIAL_CV_FOLDS[fold]
+    train_regions = tuple(region for region in CV_REGIONS if region not in val_regions)
+    return train_regions, val_regions, (TEST_REGION,)
+
+
+def regions_for_split(split: str, fold: int) -> tuple[str, ...]:
+    train_regions, val_regions, test_regions = fold_regions(fold)
+    if split == "train":
+        return train_regions
+    if split == "val":
+        return val_regions
+    if split == "test":
+        return test_regions
+    raise ValueError(f"split must be train, val, or test, got {split!r}")
+
+
+def tile_offsets(length: int, tile_size: int = TILE_SIZE, stride: int = TILE_STRIDE) -> list[int]:
+    if length <= 0:
+        return []
+    if tile_size <= 0 or stride <= 0:
+        raise ValueError("tile_size and stride must be positive")
+    if length <= tile_size:
+        return [0]
+    offsets = list(range(0, length - tile_size + 1, stride))
+    edge_offset = length - tile_size
+    if offsets[-1] != edge_offset:
+        offsets.append(edge_offset)
+    return offsets
 
 
 def normalize_db(values: np.ndarray, low: float = -30.0, high: float = 0.0) -> np.ndarray:

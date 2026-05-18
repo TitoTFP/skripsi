@@ -15,7 +15,8 @@ from scripts.preprocessing_utils import (
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ROOT = ROOT / "dataset/tiles/7ch"
 OUT_ROOT = ROOT / "dataset/tiles/procanet"
-SPLITS = ("train", "val", "test")
+SOURCE_BY_REGION_ROOT = SOURCE_ROOT / "by_region"
+OUT_BY_REGION_ROOT = OUT_ROOT / "by_region"
 PASSTHROUGH_KEYS = (
     "y",
     "valid_mask",
@@ -42,16 +43,16 @@ def build_procanet_payload(source: Mapping[str, np.ndarray]) -> dict[str, np.nda
 
 
 def clear_output() -> None:
-    OUT_ROOT.mkdir(parents=True, exist_ok=True)
-    for split_dir in OUT_ROOT.glob("*"):
-        if split_dir.is_dir():
-            for tile in split_dir.glob("*.npz"):
+    OUT_BY_REGION_ROOT.mkdir(parents=True, exist_ok=True)
+    for region_dir in OUT_BY_REGION_ROOT.glob("*"):
+        if region_dir.is_dir():
+            for tile in region_dir.glob("*.npz"):
                 tile.unlink()
 
 
-def convert_split(split: str) -> int:
-    source_dir = SOURCE_ROOT / split
-    out_dir = OUT_ROOT / split
+def convert_region(region: str) -> int:
+    source_dir = SOURCE_BY_REGION_ROOT / region
+    out_dir = OUT_BY_REGION_ROOT / region
     out_dir.mkdir(parents=True, exist_ok=True)
     count = 0
     for source_path in sorted(source_dir.glob("*.npz")):
@@ -64,7 +65,7 @@ def convert_split(split: str) -> int:
 
 def main() -> None:
     clear_output()
-    counts = {split: convert_split(split) for split in SPLITS}
+    counts = {region_dir.name: convert_region(region_dir.name) for region_dir in sorted(SOURCE_BY_REGION_ROOT.iterdir()) if region_dir.is_dir()}
     print("procanet_tile_counts", counts)
 
 

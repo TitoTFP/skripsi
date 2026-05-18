@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from training.augmentations import SpatialTransform, apply_spatial_transform
+from training.augmentations import FeatureAugmentConfig, SpatialTransform, apply_feature_augmentation, apply_spatial_transform
 from training.datasets import FloodTileDataset
 from training.losses import masked_bce_with_logits
 from training.metrics import masked_binary_stats, masked_dice, masked_iou
@@ -27,6 +27,26 @@ def write_unet_tile(root: Path, split: str = "train", name: str = "tile.npz") ->
         region=np.array("Aceh_Timur"),
         row=np.array(512),
         col=np.array(1024),
+        channels=np.array(["VV", "VH", "Hue", "Saturation", "Value", "Slope", "HAND"]),
+    )
+    return path
+
+
+def write_unet_region_tile(root: Path, region: str, name: str = "tile.npz") -> Path:
+    tile_dir = root / "7ch" / "by_region" / region
+    tile_dir.mkdir(parents=True, exist_ok=True)
+    path = tile_dir / name
+    np.savez_compressed(
+        path,
+        x=np.ones((7, 3, 4), dtype=np.float32),
+        y=np.ones((1, 3, 4), dtype=np.uint8),
+        valid_mask=np.ones((1, 3, 4), dtype=np.uint8),
+        water_river_mask=np.zeros((1, 3, 4), dtype=np.uint8),
+        feature_valid_mask=np.ones((1, 3, 4), dtype=np.uint8),
+        s2_valid_mask=np.ones((1, 3, 4), dtype=np.uint8),
+        region=np.array(region),
+        row=np.array(0),
+        col=np.array(0),
         channels=np.array(["VV", "VH", "Hue", "Saturation", "Value", "Slope", "HAND"]),
     )
     return path
@@ -147,6 +167,75 @@ class TrainingDataTests(unittest.TestCase):
             sample = dataset[0]
 
             self.assertTrue(torch.equal(sample["features"], torch.arange(7 * 3 * 4).reshape(7, 3, 4).float()))
+
+    def test_fold_dataset_selects_region_level_train_val_and_test(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for region in (
+                "Aceh_Besar",
+                "Aceh_Tamiang",
+                "Aceh_Timur",
+                "Aceh_Utara",
+                "Agam",
+                "Banda_Aceh",
+                "Bireuen",
+                "Langsa",
+                "Pasaman_Barat",
+                "Pidie",
+                "Pidie_Jaya",
+            ):
+                write_unet_region_tile(root, region, name=f"{region}.npz")
+
+            train_regions = {
+                FloodTileDataset("train", architecture="unet", root=root, fold=0, augment=False)[idx]["metadata"]["region"]
+                for idx in range(8)
+            }
+            val_regions = {
+                FloodTileDataset("val", architecture="unet", root=root, fold=0, augment=False)[idx]["metadata"]["region"]
+                for idx in range(2)
+            }
+            test_dataset = FloodTileDataset("test", architecture="unet", root=root, fold=0, augment=False)
+
+            self.assertEqual(val_regions, {"Pidie", "Pidie_Jaya"})
+            self.assertEqual(test_dataset[0]["metadata"]["region"], "Aceh_Utara")
+            self.assertNotIn("Aceh_Utara", train_regions)
+            self.assertTrue(train_regions.isdisjoint(val_regions))
+
+    def test_feature_augmentation_never_changes_labels_or_masks(self):
+        features = torch.ones((7, 3, 4), dtype=torch.float32)
+        y = torch.ones((1, 3, 4), dtype=torch.float32)
+        valid_mask = torch.ones((1, 3, 4), dtype=torch.bool)
+        feature_valid_mask = torch.ones((1, 3, 4), dtype=torch.bool)
+        sample = {
+            "features": features,
+            "y": y.clone(),
+            "valid_mask": valid_mask.clone(),
+            "auxiliary_masks": {"feature_valid_mask": feature_valid_mask.clone()},
+        }
+
+        out = apply_feature_augmentation(
+            sample,
+            rng=np.random.default_rng(1),
+            config=FeatureAugmentConfig(noise_std=0.05, channel_dropout_p=0.0),
+        )
+
+        self.assertFalse(torch.equal(out["features"], features))
+        self.assertTrue(torch.equal(out["y"], y))
+        self.assertTrue(torch.equal(out["valid_mask"], valid_mask))
+        self.assertTrue(torch.equal(out["auxiliary_masks"]["feature_valid_mask"], feature_valid_mask))
+
+    def test_feature_augmentation_keeps_procanet_shared_sar_channels_consistent(self):
+        encoder1 = torch.ones((7, 3, 4), dtype=torch.float32)
+        encoder2 = encoder1[:2].clone()
+        sample = {"features": {"encoder1": encoder1, "encoder2": encoder2}}
+
+        out = apply_feature_augmentation(
+            sample,
+            rng=np.random.default_rng(1),
+            config=FeatureAugmentConfig(noise_std=0.05, channel_dropout_p=0.0),
+        )
+
+        self.assertTrue(torch.equal(out["features"]["encoder2"], out["features"]["encoder1"][:2]))
 
     def test_masked_loss_and_metrics_ignore_invalid_pixels(self):
         logits = torch.tensor([[[[10.0, 10.0], [-10.0, -10.0]]]])

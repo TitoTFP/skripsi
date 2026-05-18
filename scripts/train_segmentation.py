@@ -29,6 +29,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--device", default="auto")
     parser.add_argument("--output-dir", type=Path, default=None)
     parser.add_argument("--tile-root", type=Path, default=None)
+    parser.add_argument("--fold", type=int, choices=range(5), default=None)
     parser.add_argument("--base-channels", type=int, default=32)
     parser.add_argument("--max-batches", type=int, default=None)
     parser.add_argument("--early-stopping-patience", type=int, default=5)
@@ -39,7 +40,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     device = resolve_device(args.device)
-    output_dir = args.output_dir or Path("runs") / args.architecture
+    output_dir = args.output_dir or default_output_dir(args.architecture, args.fold)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     train_dataset = FloodTileDataset(
@@ -47,6 +48,7 @@ def main() -> None:
         architecture=args.architecture,
         root=args.tile_root,
         water_river_as_flood=args.water_river_as_flood,
+        fold=args.fold,
     )
     val_dataset = FloodTileDataset(
         "val",
@@ -54,6 +56,7 @@ def main() -> None:
         root=args.tile_root,
         augment=False,
         water_river_as_flood=args.water_river_as_flood,
+        fold=args.fold,
     )
     train_loader = DataLoader(
         train_dataset,
@@ -164,6 +167,12 @@ def build_model(architecture: str, base_channels: int) -> torch.nn.Module:
     if architecture == "procanet":
         return ProCANet(encoder1_channels=7, encoder2_channels=2, out_channels=1, base_channels=base_channels)
     raise ValueError(f"unknown architecture {architecture!r}")
+
+
+def default_output_dir(architecture: str, fold: int | None) -> Path:
+    if fold is None:
+        return Path("runs") / architecture
+    return Path("runs") / architecture / f"fold_{fold}"
 
 
 def resolve_device(device: str) -> torch.device:

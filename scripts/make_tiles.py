@@ -6,13 +6,14 @@ from pathlib import Path
 import numpy as np
 from osgeo import gdal
 
-from scripts.preprocessing_utils import TILE_SIZE, choose_split, read_band, should_keep_tile
+from scripts.preprocessing_utils import TILE_SIZE, TEST_REGION, read_band, should_keep_tile, tile_offsets
 
 
 ROOT = Path(__file__).resolve().parents[1]
 FEATURE_ROOT = ROOT / "dataset/features_preprocessed"
 LABEL_ROOT = ROOT / "dataset/labels_unosat_rasterized"
 OUT_ROOT = ROOT / "dataset/tiles/7ch"
+BY_REGION_ROOT = OUT_ROOT / "by_region"
 SUMMARY_PATH = ROOT / "dataset/preprocessing_summary.csv"
 
 
@@ -39,36 +40,36 @@ def select_background_tiles(candidates: list[dict[str, object]], limit: int) -> 
 
 
 def collect_tile_candidates() -> tuple[dict[str, list[dict[str, object]]], dict[str, list[dict[str, object]]]]:
-    positive_tiles: dict[str, list[dict[str, object]]] = {"train": [], "val": [], "test": []}
-    background_tiles: dict[str, list[dict[str, object]]] = {"train": [], "val": [], "test": []}
+    positive_tiles: dict[str, list[dict[str, object]]] = {}
+    background_tiles: dict[str, list[dict[str, object]]] = {}
     for feature_dir in region_dirs():
         region = feature_dir.name
-        split = choose_split(region)
+        positive_tiles.setdefault(region, [])
+        background_tiles.setdefault(region, [])
         stack_ds = gdal.Open(str(feature_dir / "stack_7ch.tif"), gdal.GA_ReadOnly)
         feature_valid_ds = gdal.Open(str(feature_dir / "feature_valid_mask.tif"), gdal.GA_ReadOnly)
         label_dir = LABEL_ROOT / region
         flood_ds = gdal.Open(str(label_dir / "label_flood_binary.tif"), gdal.GA_ReadOnly)
         valid_ds = gdal.Open(str(label_dir / "label_valid_mask.tif"), gdal.GA_ReadOnly)
-        for yoff in range(0, stack_ds.RasterYSize, TILE_SIZE):
+        for yoff in tile_offsets(stack_ds.RasterYSize):
             ysize = min(TILE_SIZE, stack_ds.RasterYSize - yoff)
-            for xoff in range(0, stack_ds.RasterXSize, TILE_SIZE):
+            for xoff in tile_offsets(stack_ds.RasterXSize):
                 xsize = min(TILE_SIZE, stack_ds.RasterXSize - xoff)
                 flood = read_window(flood_ds, xoff, yoff, xsize, ysize).astype(np.uint8)
                 label_valid = read_window(valid_ds, xoff, yoff, xsize, ysize).astype(np.uint8)
                 feature_valid = read_window(feature_valid_ds, xoff, yoff, xsize, ysize).astype(np.uint8)
                 if not should_keep_tile(label_valid.astype(bool), feature_valid.astype(bool), flood.astype(bool)):
                     continue
-                record = {"region": region, "split": split, "row": yoff, "col": xoff, "is_positive": bool(np.any(flood))}
+                record = {"region": region, "row": yoff, "col": xoff, "is_positive": bool(np.any(flood))}
                 if record["is_positive"]:
-                    positive_tiles[split].append(record)
+                    positive_tiles[region].append(record)
                 else:
-                    background_tiles[split].append(record)
+                    background_tiles[region].append(record)
     return positive_tiles, background_tiles
 
 
 def write_tile(record: dict[str, object]) -> dict[str, int | str]:
     region = str(record["region"])
-    split = str(record["split"])
     yoff = int(record["row"])
     xoff = int(record["col"])
     feature_dir = FEATURE_ROOT / region
@@ -87,11 +88,11 @@ def write_tile(record: dict[str, object]) -> dict[str, int | str]:
     water = pad_to_tile(read_window(water_ds, xoff, yoff, xsize, ysize).astype(np.uint8), 0)
     feature_valid = pad_to_tile(read_window(feature_valid_ds, xoff, yoff, xsize, ysize).astype(np.uint8), 0)
     s2_valid = pad_to_tile(read_window(s2_valid_ds, xoff, yoff, xsize, ysize).astype(np.uint8), 0)
-    split_dir = OUT_ROOT / split
-    split_dir.mkdir(parents=True, exist_ok=True)
+    region_dir = BY_REGION_ROOT / region
+    region_dir.mkdir(parents=True, exist_ok=True)
     filename = f"{region}_r{yoff:06d}_c{xoff:06d}.npz"
     np.savez_compressed(
-        split_dir / filename,
+        region_dir / filename,
         x=stack,
         y=flood,
         valid_mask=label_valid,
@@ -105,7 +106,6 @@ def write_tile(record: dict[str, object]) -> dict[str, int | str]:
     )
     return {
         "region": region,
-        "split": split,
         "tile_count": 1,
         "positive_tile_count": int(record["is_positive"]),
         "background_tile_count": int(not record["is_positive"]),
@@ -118,20 +118,19 @@ def write_tile(record: dict[str, object]) -> dict[str, int | str]:
 
 def main() -> None:
     gdal.UseExceptions()
-    OUT_ROOT.mkdir(parents=True, exist_ok=True)
-    for split_dir in OUT_ROOT.glob("*"):
-        if split_dir.is_dir():
-            for tile in split_dir.glob("*.npz"):
+    BY_REGION_ROOT.mkdir(parents=True, exist_ok=True)
+    for region_dir in BY_REGION_ROOT.glob("*"):
+        if region_dir.is_dir():
+            for tile in region_dir.glob("*.npz"):
                 tile.unlink()
     positive_tiles, background_tiles = collect_tile_candidates()
-    region_summaries: dict[tuple[str, str], dict[str, int | str]] = {}
+    region_summaries: dict[str, dict[str, int | str]] = {}
 
     for feature_dir in region_dirs():
         region = feature_dir.name
-        split = choose_split(region)
-        region_summaries[(region, split)] = {
+        region_summaries[region] = {
             "region": region,
-            "split": split,
+            "split": "test" if region == TEST_REGION else "cv",
             "tile_count": 0,
             "positive_tile_count": 0,
             "background_tile_count": 0,
@@ -142,14 +141,13 @@ def main() -> None:
         }
 
     selected = []
-    for split in ("train", "val", "test"):
-        selected.extend(positive_tiles[split])
-        selected.extend(select_background_tiles(background_tiles[split], len(positive_tiles[split])))
+    for region in sorted(positive_tiles):
+        selected.extend(positive_tiles[region])
+        selected.extend(select_background_tiles(background_tiles[region], len(positive_tiles[region])))
 
     for rec in selected:
         tile_summary = write_tile(rec)
-        key = (str(tile_summary["region"]), str(tile_summary["split"]))
-        summary = region_summaries[key]
+        summary = region_summaries[str(tile_summary["region"])]
         for field in (
             "tile_count",
             "positive_tile_count",
