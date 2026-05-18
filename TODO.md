@@ -164,7 +164,8 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
 
 - [ ] Evaluasi model pada split test.
   - Inferensi U-Net dan ProCANet pada test set.
-  - Pakai checkpoint: `runs/baseline_unet/best.pt` dan `runs/procanet/best.pt`.
+  - Script inferensi tersedia di `scripts.infer_segmentation`.
+  - Pilih checkpoint via `--checkpoint`, wilayah via `--region`, dan GeoTIFF mosaic opsional via `--write-geotiff`.
   - Hitung confusion matrix piksel: TP, FP, TN, FN.
   - Hitung IoU.
   - Hitung F1-score/Dice.

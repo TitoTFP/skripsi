@@ -30,6 +30,7 @@ class FloodTileDataset(Dataset):
         rng: np.random.Generator | None = None,
         water_river_as_flood: bool = False,
         fold: int | None = None,
+        regions: list[str] | tuple[str, ...] | None = None,
     ) -> None:
         self.split = split
         self.architecture = architecture.lower()
@@ -38,6 +39,7 @@ class FloodTileDataset(Dataset):
         self.augment = (split == "train") if augment is None else bool(augment and split == "train")
         self.water_river_as_flood = water_river_as_flood
         self.fold = fold
+        self.regions = tuple(regions) if regions is not None else None
 
         if self.split not in VALID_SPLITS:
             raise ValueError(f"split must be one of {sorted(VALID_SPLITS)}, got {split!r}")
@@ -76,6 +78,11 @@ class FloodTileDataset(Dataset):
         return sample
 
     def _collect_paths(self, tile_root: str) -> list[Path]:
+        if self.regions is not None:
+            paths: list[Path] = []
+            for region in self.regions:
+                paths.extend(sorted((self.root / tile_root / "by_region" / region).glob("*.npz")))
+            return paths
         if self.fold is None:
             return sorted((self.root / tile_root / self.split).glob("*.npz"))
         paths: list[Path] = []

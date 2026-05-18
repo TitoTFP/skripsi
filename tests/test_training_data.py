@@ -201,6 +201,23 @@ class TrainingDataTests(unittest.TestCase):
             self.assertNotIn("Aceh_Utara", train_regions)
             self.assertTrue(train_regions.isdisjoint(val_regions))
 
+    def test_region_dataset_reads_only_requested_regions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            write_unet_region_tile(root, "Aceh_Utara", name="aceh_utara.npz")
+            write_unet_region_tile(root, "Pidie", name="pidie.npz")
+
+            dataset = FloodTileDataset(
+                "test",
+                architecture="unet",
+                root=root,
+                regions=["Aceh_Utara"],
+                augment=False,
+            )
+
+            self.assertEqual(len(dataset), 1)
+            self.assertEqual(dataset[0]["metadata"]["region"], "Aceh_Utara")
+
     def test_feature_augmentation_never_changes_labels_or_masks(self):
         features = torch.ones((7, 3, 4), dtype=torch.float32)
         y = torch.ones((1, 3, 4), dtype=torch.float32)

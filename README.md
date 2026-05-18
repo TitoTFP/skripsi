@@ -497,7 +497,7 @@ uv run python -m unittest tests.test_preprocessing_helpers tests.test_rasterize_
 Expected:
 
 ```text
-Ran 44 tests
+Ran 50 tests
 OK
 ```
 
@@ -613,8 +613,49 @@ The current comparison plot is stored at:
 runs/training_curves.png
 ```
 
-These are validation results only. Final test-set inference, confusion matrix,
-IoU, Dice/F1, and qualitative overlay visualizations are still pending.
+These are validation results only. Final test-set inference over `Aceh_Utara`
+still needs to be run for the selected checkpoints.
+
+### Inference
+
+Run inference/evaluation for a checkpoint on one or more regions:
+
+```bash
+uv run python -m scripts.infer_segmentation \
+  --checkpoint runs/unet/fold_0/best.pt \
+  --region Aceh_Utara \
+  --output-dir runs/inference/unet_fold0_aceh_utara
+```
+
+Outputs:
+
+```text
+runs/inference/.../metrics.csv
+runs/inference/.../metrics.json
+runs/inference/.../predictions/<region>/*.npz
+```
+
+Use `--region` repeatedly for multiple regions. Add `--write-geotiff` to write
+per-region mosaic rasters:
+
+```bash
+uv run python -m scripts.infer_segmentation \
+  --checkpoint runs/unet/fold_0/best.pt \
+  --region Aceh_Utara \
+  --write-geotiff \
+  --output-dir runs/inference/unet_fold0_aceh_utara
+```
+
+GeoTIFF outputs:
+
+```text
+geotiff/<region>_probability.tif
+geotiff/<region>_prediction.tif
+geotiff/<region>_effective_valid_mask.tif
+```
+
+GeoTIFF export is disabled by default. Overlapping tiles are mosaicked by mean
+probability, then thresholded into the prediction raster.
 
 ### Mask Visualization
 
