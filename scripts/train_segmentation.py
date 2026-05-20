@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import csv
 from pathlib import Path
 
@@ -10,6 +11,13 @@ from torch.utils.data import DataLoader
 from training.datasets import FloodTileDataset
 from training.models import ProCANet, UNet
 from training.train import EarlyStopping, evaluate, save_checkpoint_if_best, train_one_epoch, write_training_config
+
+VALID_FOLDS = tuple(range(5))
+QUICK_TUNING_VARIANTS = (
+    ("quick_baseline", {}),
+    ("quick_lr_5e-5", {"lr": 5e-5}),
+    ("quick_weight_decay_1e-5", {"weight_decay": 1e-5}),
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -29,7 +37,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--device", default="auto")
     parser.add_argument("--output-dir", type=Path, default=None)
     parser.add_argument("--tile-root", type=Path, default=None)
-    parser.add_argument("--fold", type=int, choices=range(5), default=None)
+    parser.add_argument("--fold", type=parse_fold, default=None, metavar="{0,1,2,3,4,all}")
+    parser.add_argument("--tuning-preset", choices=("none", "quick"), default="none")
     parser.add_argument("--base-channels", type=int, default=32)
     parser.add_argument("--max-batches", type=int, default=None)
     parser.add_argument("--early-stopping-patience", type=int, default=5)
@@ -39,6 +48,26 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    fold_all = args.fold == "all"
+    for fold in resolve_folds(args.fold):
+        fold_output_dir = resolve_fold_output_dir(
+            architecture=args.architecture,
+            requested_output_dir=args.output_dir,
+            fold=fold,
+            fold_all=fold_all,
+        )
+        for tuning_variant, overrides in tuning_variants(args.tuning_preset):
+            run_args = copy.copy(args)
+            run_args.fold = fold
+            run_args.output_dir = resolve_tuning_output_dir(fold_output_dir, args.tuning_preset, tuning_variant)
+            run_args.tuning_variant = tuning_variant
+            for key, value in overrides.items():
+                setattr(run_args, key, value)
+            print(f"=== Training fold={fold} tuning={tuning_variant} output_dir={run_args.output_dir} ===")
+            run_training(run_args)
+
+
+def run_training(args: argparse.Namespace) -> None:
     device = resolve_device(args.device)
     output_dir = args.output_dir or default_output_dir(args.architecture, args.fold)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -159,6 +188,50 @@ def main() -> None:
             print(row)
             if stopped_early:
                 break
+
+
+def parse_fold(value: str) -> int | str:
+    if value == "all":
+        return value
+    try:
+        fold = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("fold must be 0..4 or all") from exc
+    if fold not in VALID_FOLDS:
+        raise argparse.ArgumentTypeError("fold must be 0..4 or all")
+    return fold
+
+
+def resolve_folds(fold: int | str | None) -> tuple[int | None, ...]:
+    if fold == "all":
+        return VALID_FOLDS
+    return (fold,)
+
+
+def resolve_fold_output_dir(
+    architecture: str,
+    requested_output_dir: Path | None,
+    fold: int | None,
+    fold_all: bool,
+) -> Path:
+    if fold_all:
+        base_dir = requested_output_dir or Path("runs") / architecture
+        return base_dir / f"fold_{fold}"
+    return requested_output_dir or default_output_dir(architecture, fold)
+
+
+def tuning_variants(preset: str) -> tuple[tuple[str, dict[str, float]], ...]:
+    if preset == "none":
+        return (("none", {}),)
+    if preset == "quick":
+        return QUICK_TUNING_VARIANTS
+    raise ValueError(f"unknown tuning preset {preset!r}")
+
+
+def resolve_tuning_output_dir(base_dir: Path, preset: str, tuning_variant: str) -> Path:
+    if preset == "none":
+        return base_dir
+    return base_dir / tuning_variant
 
 
 def build_model(architecture: str, base_channels: int) -> torch.nn.Module:

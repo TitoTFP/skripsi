@@ -6,7 +6,7 @@ from unittest.mock import patch
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from scripts.train_segmentation import build_scheduler, parse_args, resolve_amp_enabled
+from scripts.train_segmentation import build_scheduler, parse_args, resolve_amp_enabled, resolve_fold_output_dir
 from training.losses import masked_bce_dice_loss, masked_dice_loss
 from training.train import EarlyStopping, evaluate, save_checkpoint_if_best, train_one_epoch, write_training_config
 
@@ -154,6 +154,44 @@ class TrainingLoopTests(unittest.TestCase):
         self.assertEqual(args.lr_factor, 0.25)
         self.assertEqual(args.lr_patience, 3)
         self.assertEqual(args.fold, 4)
+
+    def test_parse_args_accepts_fold_all_and_quick_tuning_preset(self):
+        argv = [
+            "train_segmentation.py",
+            "--architecture",
+            "unet",
+            "--fold",
+            "all",
+            "--tuning-preset",
+            "quick",
+        ]
+        with patch("sys.argv", argv):
+            args = parse_args()
+
+        self.assertEqual(args.fold, "all")
+        self.assertEqual(args.tuning_preset, "quick")
+
+    def test_parse_args_rejects_invalid_fold_string(self):
+        argv = [
+            "train_segmentation.py",
+            "--architecture",
+            "unet",
+            "--fold",
+            "banana",
+        ]
+        with patch("sys.argv", argv):
+            with self.assertRaises(SystemExit):
+                parse_args()
+
+    def test_resolve_fold_output_dir_uses_parent_for_fold_all(self):
+        output_dir = resolve_fold_output_dir(
+            architecture="unet",
+            requested_output_dir=Path("runs/unet"),
+            fold=3,
+            fold_all=True,
+        )
+
+        self.assertEqual(output_dir, Path("runs/unet/fold_3"))
 
     def test_build_scheduler_reduces_lr_when_validation_iou_stagnates(self):
         model = TinySegmentationModel("unet")

@@ -529,10 +529,32 @@ Default training uses AdamW, `25` epochs, batch size `2`, learning rate `1e-4`,
 weight decay `1e-4`, early stopping patience `5`, `ReduceLROnPlateau` on
 validation IoU, gradient accumulation step `1`, AMP disabled, and auto-selects
 CUDA when available. Pass `--fold 0` through `--fold 4` for spatial
-cross-validation. Best checkpoints are saved by validation IoU:
+cross-validation, or `--fold all` to run folds `0..4` sequentially. Best
+checkpoints are saved by validation IoU:
 
 ```text
 runs/{architecture}/fold_{k}/best.pt
+```
+
+Run all folds for one architecture:
+
+```bash
+uv run python -m scripts.train_segmentation \
+  --architecture unet \
+  --fold all \
+  --epochs 50 \
+  --batch-size 8 \
+  --output-dir runs/unet
+```
+
+With `--fold all`, the output directory is treated as the parent directory:
+
+```text
+runs/unet/fold_0/
+runs/unet/fold_1/
+runs/unet/fold_2/
+runs/unet/fold_3/
+runs/unet/fold_4/
 ```
 
 Legacy finished experiment outputs before 5-fold CV are:
@@ -597,6 +619,28 @@ uv run python -m scripts.train_segmentation \
 
 `--amp` only takes effect on CUDA. On CPU, training falls back to FP32 and
 `runs/{architecture}/config.json` records `amp_effective: false`.
+
+Lightweight hyperparameter tuning:
+
+```bash
+uv run python -m scripts.train_segmentation \
+  --architecture unet \
+  --fold all \
+  --tuning-preset quick \
+  --epochs 50 \
+  --batch-size 4 \
+  --output-dir runs/unet
+```
+
+`--tuning-preset quick` runs three sequential variants only: baseline args,
+`lr=5e-5`, and `weight_decay=1e-5`. For `--fold all`, each variant is nested
+under its fold directory:
+
+```text
+runs/unet/fold_0/quick_baseline/
+runs/unet/fold_0/quick_lr_5e-5/
+runs/unet/fold_0/quick_weight_decay_1e-5/
+```
 
 ### Current Training Results
 
