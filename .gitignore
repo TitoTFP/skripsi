@@ -81,3 +81,6 @@ dataset/unosat/*.gdb/
 
 # Documents
 docs/
+
+# Tool configurations
+.antigravitycli/
