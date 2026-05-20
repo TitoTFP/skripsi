@@ -66,8 +66,28 @@ def main() -> None:
             run_args.tuning_variant = tuning_variant
             for key, value in overrides.items():
                 setattr(run_args, key, value)
+            if is_training_complete(run_args.output_dir, run_args.epochs):
+                print(f"=== Skipping fold={fold} tuning={tuning_variant} output_dir={run_args.output_dir} (already completed) ===")
+                continue
             print(f"=== Training fold={fold} tuning={tuning_variant} output_dir={run_args.output_dir} ===")
             run_training(run_args)
+
+
+def is_training_complete(output_dir: Path, target_epochs: int) -> bool:
+    metrics_path = output_dir / "metrics.csv"
+    if not metrics_path.exists():
+        return False
+    try:
+        with metrics_path.open("r") as f:
+            reader = list(csv.DictReader(f))
+            if not reader:
+                return False
+            last_row = reader[-1]
+            epoch = int(last_row["epoch"])
+            stopped_early = int(last_row["stopped_early"])
+            return epoch >= target_epochs or stopped_early == 1
+    except Exception:
+        return False
 
 
 def run_training(args: argparse.Namespace) -> None:
