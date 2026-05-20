@@ -155,7 +155,7 @@ class TrainingLoopTests(unittest.TestCase):
         self.assertEqual(args.lr_patience, 3)
         self.assertEqual(args.fold, 4)
 
-    def test_parse_args_accepts_fold_all_and_quick_tuning_preset(self):
+    def test_parse_args_accepts_fold_all_and_grid_tuning_preset(self):
         argv = [
             "train_segmentation.py",
             "--architecture",
@@ -163,13 +163,13 @@ class TrainingLoopTests(unittest.TestCase):
             "--fold",
             "all",
             "--tuning-preset",
-            "quick",
+            "grid",
         ]
         with patch("sys.argv", argv):
             args = parse_args()
 
         self.assertEqual(args.fold, "all")
-        self.assertEqual(args.tuning_preset, "quick")
+        self.assertEqual(args.tuning_preset, "grid")
 
     def test_parse_args_rejects_invalid_fold_string(self):
         argv = [
