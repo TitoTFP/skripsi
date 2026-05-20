@@ -397,6 +397,36 @@ dataset/preprocessing_verification_report.csv
 
 ## Scripts
 
+### DEMNAS cropping
+
+```bash
+uv run python -m scripts.export_demnas
+```
+
+Crops the raw Sumatra DEMNAS dataset (`dataset/indonesia-geospasial.com DEMNAS_sumatera/dem_sumatera_a_1.jp2` or custom via `--input-dem`) to region boundaries. The boundaries are GeoJSON files under `dataset/batas admin indo`.
+The cropped outputs are saved under:
+
+```text
+dataset/DEMNAS_Exports/<region>/DEMNAS_<region>.tif
+```
+
+Use `--region "<name>"` for a single region (can be repeated), `--dry-run` to preview planned crops, and `--overwrite` to replace existing exports.
+
+### DEMNAS warping
+
+```bash
+uv run python -m scripts.warp_demnas
+```
+
+Warps/aligns raw DEMNAS cropped images to match the Sentinel-1 reference grids. S1 reference files are searched under `--sentinel-root`.
+The warped/aligned outputs are saved under:
+
+```text
+dataset/DEMNAS_warped_to_sentinel/<region>/DEMNAS_<region>_warped_to_sentinel.tif
+```
+
+Use `--region "<name>"` for a single region (can be repeated), `--dry-run` to preview planned warps, and `--overwrite` to replace existing aligned DEMs.
+
 ### UNOSAT label rasterization
 
 ```bash
@@ -491,13 +521,19 @@ tile_counts_by_region {'Aceh_Besar': 518, ..., 'Aceh_Utara': 493, ..., 'Pidie_Ja
 ### Unit tests
 
 ```bash
-uv run python -m unittest tests.test_preprocessing_helpers tests.test_rasterize_unosat_labels tests.test_training_data tests.test_models tests.test_training_loop -v
+uv run python -m unittest discover -s tests -p "test_*.py" -v
+```
+
+Or run individual tests explicitly:
+
+```bash
+uv run python -m unittest tests.test_export_demnas tests.test_warp_demnas tests.test_preprocessing_helpers tests.test_rasterize_unosat_labels tests.test_training_data tests.test_models tests.test_training_loop -v
 ```
 
 Expected:
 
 ```text
-Ran 50 tests
+Ran 58 tests
 OK
 ```
 
@@ -626,20 +662,26 @@ Lightweight hyperparameter tuning:
 uv run python -m scripts.train_segmentation \
   --architecture unet \
   --fold all \
-  --tuning-preset quick \
+  --tuning-preset grid \
   --epochs 50 \
   --batch-size 4 \
   --output-dir runs/unet
 ```
 
-`--tuning-preset quick` runs three sequential variants only: baseline args,
-`lr=5e-5`, and `weight_decay=1e-5`. For `--fold all`, each variant is nested
-under its fold directory:
+`--tuning-preset grid` runs a grid search over 6 hyperparameter combinations:
+- `grid_lr_1e-4_wd_1e-4` (`lr=1e-4`, `weight_decay=1e-4`)
+- `grid_lr_1e-4_wd_1e-5` (`lr=1e-4`, `weight_decay=1e-5`)
+- `grid_lr_5e-5_wd_1e-4` (`lr=5e-5`, `weight_decay=1e-4`)
+- `grid_lr_5e-5_wd_1e-5` (`lr=5e-5`, `weight_decay=1e-5`)
+- `grid_lr_1e-5_wd_1e-4` (`lr=1e-5`, `weight_decay=1e-4`)
+- `grid_lr_1e-5_wd_1e-5` (`lr=1e-5`, `weight_decay=1e-5`)
+
+For `--fold all`, each variant is nested under its fold directory:
 
 ```text
-runs/unet/fold_0/quick_baseline/
-runs/unet/fold_0/quick_lr_5e-5/
-runs/unet/fold_0/quick_weight_decay_1e-5/
+runs/unet/fold_0/grid_lr_1e-4_wd_1e-4/
+runs/unet/fold_0/grid_lr_1e-4_wd_1e-5/
+...
 ```
 
 ### Current Training Results
@@ -761,13 +803,17 @@ uv sync
 │       ├── 7ch/
 │       └── procanet/
 ├── scripts/
+│   ├── export_demnas.py
+│   ├── infer_segmentation.py
+│   ├── make_procanet_tiles.py
+│   ├── make_tiles.py
+│   ├── preprocess_features.py
 │   ├── preprocessing_utils.py
 │   ├── rasterize_unosat_labels.py
-│   ├── preprocess_features.py
-│   ├── make_tiles.py
-│   ├── make_procanet_tiles.py
 │   ├── train_segmentation.py
-│   └── verify_preprocessing.py
+│   ├── verify_preprocessing.py
+│   ├── visualize_valid_masks.py
+│   └── warp_demnas.py
 ├── training/
 │   ├── datasets.py
 │   ├── losses.py
@@ -775,10 +821,14 @@ uv sync
 │   ├── train.py
 │   └── models/
 ├── tests/
-│   ├── test_preprocessing_helpers.py
-│   ├── test_training_data.py
+│   ├── test_export_demnas.py
+│   ├── test_infer_segmentation.py
 │   ├── test_models.py
-│   └── test_training_loop.py
+│   ├── test_preprocessing_helpers.py
+│   ├── test_rasterize_unosat_labels.py
+│   ├── test_training_data.py
+│   ├── test_training_loop.py
+│   └── test_warp_demnas.py
 ├── pyproject.toml
 └── README.md
 ```

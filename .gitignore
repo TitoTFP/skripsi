@@ -62,6 +62,7 @@ dataset/tiles/
 dataset/**/zip_output/
 dataset/unosat/*.zip
 dataset/unosat/*.gdb/
+geotiff/
 *.npz
 *.tif
 *.tiff

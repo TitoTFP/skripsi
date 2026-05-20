@@ -23,6 +23,7 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
 
 - [x] Alignment data dasar sudah dilakukan.
   - Sentinel-1 dan Sentinel-2 sudah align per wilayah.
+  - Script cropping DEMNAS (`scripts/export_demnas.py`) dan warping (`scripts/warp_demnas.py`) sudah diimplementasi beserta unit test-nya (`tests/test_export_demnas.py`, `tests/test_warp_demnas.py`).
   - DEMNAS sudah di-warp ke grid Sentinel di `dataset/DEMNAS_warped_to_sentinel/`.
 
 - [x] Preprocessing Sentinel-1 sudah dilakukan.
@@ -114,8 +115,9 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
   - Logging train/validation loss dan metrik.
   - Training CLI tersedia di `scripts.train_segmentation`.
   - Spatial CV tersedia lewat `--fold 0..4`; default output menjadi `runs/{architecture}/fold_{k}` saat fold dipakai.
+  - Preset hyperparameter tuning grid search (`--tuning-preset grid`) sudah diimplementasikan untuk menjalankan sequential grid search pada 6 hyperparameter combinations.
   - Config tersimpan di `runs/{architecture}/fold_{k}/config.json` untuk mode fold.
-  - Metrics tersimpan di `runs/{architecture}/fold_{k}/metrics.csv` untuk mode fold.
+  - Metrics tersimpan di `runs/{architecture}/fold_{k}/metrics.csv` for mode fold.
 
 - [x] Implementasi opsi eksperimen label water/river sebagai flood.
   - Default tetap flood-only dari `label_flood_binary`.
