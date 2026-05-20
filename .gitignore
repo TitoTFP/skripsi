@@ -86,3 +86,7 @@ docs/
 
 # Tool configurations
 .antigravitycli/
+
+# Kaggle temporary staging
+kaggle_kernel/
+kaggle_upload/
