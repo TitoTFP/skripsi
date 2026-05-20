@@ -64,6 +64,7 @@ dataset/unosat/*.zip
 dataset/unosat/*.gdb/
 geotiff/
 *.npz
+*.zip
 *.tif
 *.tiff
 *.jp2
