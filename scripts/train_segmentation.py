@@ -13,10 +13,13 @@ from training.models import ProCANet, UNet
 from training.train import EarlyStopping, evaluate, save_checkpoint_if_best, train_one_epoch, write_training_config
 
 VALID_FOLDS = tuple(range(5))
-QUICK_TUNING_VARIANTS = (
-    ("quick_baseline", {}),
-    ("quick_lr_5e-5", {"lr": 5e-5}),
-    ("quick_weight_decay_1e-5", {"weight_decay": 1e-5}),
+GRID_TUNING_VARIANTS = (
+    ("grid_lr_1e-4_wd_1e-4", {"lr": 1e-4, "weight_decay": 1e-4}),
+    ("grid_lr_1e-4_wd_1e-5", {"lr": 1e-4, "weight_decay": 1e-5}),
+    ("grid_lr_5e-5_wd_1e-4", {"lr": 5e-5, "weight_decay": 1e-4}),
+    ("grid_lr_5e-5_wd_1e-5", {"lr": 5e-5, "weight_decay": 1e-5}),
+    ("grid_lr_1e-5_wd_1e-4", {"lr": 1e-5, "weight_decay": 1e-4}),
+    ("grid_lr_1e-5_wd_1e-5", {"lr": 1e-5, "weight_decay": 1e-5}),
 )
 
 
@@ -38,7 +41,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, default=None)
     parser.add_argument("--tile-root", type=Path, default=None)
     parser.add_argument("--fold", type=parse_fold, default=None, metavar="{0,1,2,3,4,all}")
-    parser.add_argument("--tuning-preset", choices=("none", "quick"), default="none")
+    parser.add_argument("--tuning-preset", choices=("none", "grid"), default="none")
     parser.add_argument("--base-channels", type=int, default=32)
     parser.add_argument("--max-batches", type=int, default=None)
     parser.add_argument("--early-stopping-patience", type=int, default=5)
@@ -223,8 +226,10 @@ def resolve_fold_output_dir(
 def tuning_variants(preset: str) -> tuple[tuple[str, dict[str, float]], ...]:
     if preset == "none":
         return (("none", {}),)
+    if preset == "grid":
+        return GRID_TUNING_VARIANTS
     if preset == "quick":
-        return QUICK_TUNING_VARIANTS
+        raise ValueError("quick tuning preset is no longer supported")
     raise ValueError(f"unknown tuning preset {preset!r}")
 
 
