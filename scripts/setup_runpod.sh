@@ -59,8 +59,9 @@ stop_runpod_pod() {
     # Kirim query GraphQL ke API RunPod untuk mematikan Pod
     RESPONSE=$(curl -s -X POST \
       -H "Content-Type: application/json" \
-      -d "{\"query\": \"mutation { stopPod(input: { podId: \\\"$POD_ID\\\" }) { id desiredStatus } }\"}" \
-      "https://api.runpod.io/v2/user?apikey=$RUNPOD_API_KEY")
+      -H "Authorization: Bearer $RUNPOD_API_KEY" \
+      -d "{\"query\": \"mutation { podStop(input: { podId: \\\"$POD_ID\\\" }) { id desiredStatus } }\"}" \
+      "https://api.runpod.io/graphql")
       
     echo "[Auto-Shutdown] Response dari RunPod API: $RESPONSE"
 }
@@ -75,21 +76,25 @@ trap cleanup_and_shutdown EXIT
 
 
 # ------------------------------------------------------------------------------
-# 1. Install uv (Astral) untuk instalasi package super cepat
+# 1. Install system packages (GDAL & other essential utilities) and uv
 # ------------------------------------------------------------------------------
+echo "[1/5] Installing system packages & GDAL..."
+export DEBIAN_FRONTEND=noninteractive
+apt-get update && apt-get install -y unzip wget curl git gdal-bin libgdal-dev python3-gdal
+
 if ! command -v uv &> /dev/null; then
-    echo "[1/5] Installing uv..."
+    echo "Installing uv..."
     curl -LsSf https://astral.sh/uv/install.sh | sh
     source $HOME/.local/bin/env
 else
-    echo "[1/5] uv already installed."
+    echo "uv already installed."
 fi
 
 # ------------------------------------------------------------------------------
 # 2. Install dependencies (Menjaga PyTorch CUDA bawaan RunPod tetap utuh)
 # ------------------------------------------------------------------------------
 echo "[2/5] Installing dependencies via uv..."
-uv pip install --system kaggle whitebox earthengine-api tqdm numpy
+uv pip install --system kaggle whitebox earthengine-api tqdm
 
 # ------------------------------------------------------------------------------
 # 3. Setup Kredensial Kaggle API
@@ -117,42 +122,47 @@ fi
 # ------------------------------------------------------------------------------
 # 4. Download & Ekstrak Dataset dari Kaggle
 # ------------------------------------------------------------------------------
-echo "[4/5] Downloading dataset: $KAGGLE_DATASET..."
+echo "[4/5] Checking dataset..."
 mkdir -p dataset/tiles
 
-# Download dataset
-kaggle datasets download -d "$KAGGLE_DATASET" -p dataset/
-
-ZIP_FILE=$(find dataset/ -maxdepth 1 -name "*.zip" | head -n 1)
-
-if [ -n "$ZIP_FILE" ]; then
-    echo "Meng-ekstrak dataset: $ZIP_FILE..."
-    mkdir -p dataset/temp_extract
-    unzip -q "$ZIP_FILE" -d dataset/temp_extract
-    
-    # Deteksi struktur dataset kaggle Anda (tiles_7ch/7ch dan tiles_procanet/procanet)
-    if [ -d "dataset/temp_extract/tiles_7ch/7ch" ] || [ -d "dataset/temp_extract/tiles_procanet/procanet" ]; then
-        echo "Struktur terdeteksi: tiles_7ch/7ch & tiles_procanet/procanet"
-        if [ -d "dataset/temp_extract/tiles_7ch/7ch" ]; then
-            mv dataset/temp_extract/tiles_7ch/7ch dataset/tiles/
-        fi
-        if [ -d "dataset/temp_extract/tiles_procanet/procanet" ]; then
-            mv dataset/temp_extract/tiles_procanet/procanet dataset/tiles/
-        fi
-    elif [ -d "dataset/temp_extract/7ch" ] || [ -d "dataset/temp_extract/procanet" ]; then
-        mv dataset/temp_extract/* dataset/tiles/
-    elif [ -d "dataset/temp_extract/tiles/7ch" ] || [ -d "dataset/temp_extract/tiles/procanet" ]; then
-        mv dataset/temp_extract/tiles/* dataset/tiles/
-    else
-        mv dataset/temp_extract/* dataset/tiles/
-    fi
-    
-    rm -rf dataset/temp_extract
-    rm "$ZIP_FILE"
-    echo "✔ Ekstraksi dataset selesai ke dataset/tiles/"
+if [ -d "dataset/tiles/7ch" ] && [ -d "dataset/tiles/procanet" ]; then
+    echo "✔ Dataset sudah ter-ekstrak sebelumnya. Melewati langkah download."
 else
-    echo "❌ ERROR: File zip dataset tidak ditemukan!"
-    exit 1
+    echo "Dataset belum lengkap. Mengunduh dataset: $KAGGLE_DATASET..."
+    # Download dataset
+    kaggle datasets download -d "$KAGGLE_DATASET" -p dataset/
+    
+    ZIP_FILE=$(find dataset/ -maxdepth 1 -name "*.zip" | head -n 1)
+    
+    if [ -n "$ZIP_FILE" ]; then
+        echo "Meng-ekstrak dataset: $ZIP_FILE..."
+        mkdir -p dataset/temp_extract
+        unzip -q "$ZIP_FILE" -d dataset/temp_extract
+        
+        # Deteksi struktur dataset kaggle Anda (tiles_7ch/7ch dan tiles_procanet/procanet)
+        if [ -d "dataset/temp_extract/tiles_7ch/7ch" ] || [ -d "dataset/temp_extract/tiles_procanet/procanet" ]; then
+            echo "Struktur terdeteksi: tiles_7ch/7ch & tiles_procanet/procanet"
+            if [ -d "dataset/temp_extract/tiles_7ch/7ch" ]; then
+                mv dataset/temp_extract/tiles_7ch/7ch dataset/tiles/
+            fi
+            if [ -d "dataset/temp_extract/tiles_procanet/procanet" ]; then
+                mv dataset/temp_extract/tiles_procanet/procanet dataset/tiles/
+            fi
+        elif [ -d "dataset/temp_extract/7ch" ] || [ -d "dataset/temp_extract/procanet" ]; then
+            mv dataset/temp_extract/* dataset/tiles/
+        elif [ -d "dataset/temp_extract/tiles/7ch" ] || [ -d "dataset/temp_extract/tiles/procanet" ]; then
+            mv dataset/temp_extract/tiles/* dataset/tiles/
+        else
+            mv dataset/temp_extract/* dataset/tiles/
+        fi
+        
+        rm -rf dataset/temp_extract
+        rm "$ZIP_FILE"
+        echo "✔ Ekstraksi dataset selesai ke dataset/tiles/"
+    else
+        echo "❌ ERROR: File zip dataset tidak ditemukan!"
+        exit 1
+    fi
 fi
 
 # ------------------------------------------------------------------------------
@@ -166,8 +176,9 @@ echo "Memulai training: $ARCHITECTURE (Fold: ALL, Tuning: $TUNING_PRESET)"
 echo "Output Directory: $OUTPUT_DIR"
 echo "-----------------------------------------"
 
-# Jalankan training loop utama
-uv run python -m scripts.train_segmentation \
+# Jalankan training loop utama menggunakan system python (karena memiliki binding GDAL/osgeo)
+export PYTHONPATH=.
+python3 scripts/train_segmentation.py \
       --architecture "$ARCHITECTURE" \
       --epochs "$EPOCHS" \
       --batch-size "$BATCH_SIZE" \
