@@ -120,47 +120,54 @@ else
 fi
 
 # ------------------------------------------------------------------------------
-# 4. Download & Ekstrak Dataset dari Kaggle
+# 4. Download & Ekstrak Dataset dari Kaggle (Optimasi Local SSD)
 # ------------------------------------------------------------------------------
-echo "[4/5] Checking dataset..."
-mkdir -p dataset/tiles
+echo "[4/5] Checking dataset on Local SSD..."
+LOCAL_TILE_ROOT="/tmp/dataset/tiles"
+mkdir -p "$LOCAL_TILE_ROOT"
 
-if [ -d "dataset/tiles/7ch" ] && [ -d "dataset/tiles/procanet" ]; then
-    echo "✔ Dataset sudah ter-ekstrak sebelumnya. Melewati langkah download."
+# Tentukan folder spesifik yang dibutuhkan arsitektur saat ini
+if [ "$ARCHITECTURE" = "unet" ]; then
+    TARGET_FOLDER="7ch"
+    ZIP_PATTERN="tiles_7ch/*"
 else
-    echo "Dataset belum lengkap. Mengunduh dataset: $KAGGLE_DATASET..."
-    # Download dataset
-    kaggle datasets download -d "$KAGGLE_DATASET" -p dataset/
-    
+    TARGET_FOLDER="procanet"
+    ZIP_PATTERN="tiles_procanet/*"
+fi
+
+if [ -d "$LOCAL_TILE_ROOT/$TARGET_FOLDER" ]; then
+    echo "✔ Dataset $TARGET_FOLDER sudah ter-ekstrak di Local SSD (/tmp). Melewati langkah ini."
+else
+    # Pastikan file zip ada di workspace (persistent agar tidak download ulang jika pod direstart)
+    mkdir -p dataset
     ZIP_FILE=$(find dataset/ -maxdepth 1 -name "*.zip" | head -n 1)
     
+    if [ -z "$ZIP_FILE" ]; then
+        echo "Dataset zip tidak ditemukan di workspace. Mengunduh dataset: $KAGGLE_DATASET..."
+        kaggle datasets download -d "$KAGGLE_DATASET" -p dataset/
+        ZIP_FILE=$(find dataset/ -maxdepth 1 -name "*.zip" | head -n 1)
+    else
+        echo "✔ File zip dataset ditemukan di workspace (persistent)."
+    fi
+    
     if [ -n "$ZIP_FILE" ]; then
-        echo "Meng-ekstrak dataset: $ZIP_FILE..."
-        mkdir -p dataset/temp_extract
-        unzip -q "$ZIP_FILE" -d dataset/temp_extract
+        echo "Meng-ekstrak hanya folder $TARGET_FOLDER ke Local SSD (/tmp) untuk kecepatan maksimal..."
+        mkdir -p /tmp/temp_extract
         
-        # Deteksi struktur dataset kaggle Anda (tiles_7ch/7ch dan tiles_procanet/procanet)
-        if [ -d "dataset/temp_extract/tiles_7ch/7ch" ] || [ -d "dataset/temp_extract/tiles_procanet/procanet" ]; then
-            echo "Struktur terdeteksi: tiles_7ch/7ch & tiles_procanet/procanet"
-            if [ -d "dataset/temp_extract/tiles_7ch/7ch" ]; then
-                mv dataset/temp_extract/tiles_7ch/7ch dataset/tiles/
-            fi
-            if [ -d "dataset/temp_extract/tiles_procanet/procanet" ]; then
-                mv dataset/temp_extract/tiles_procanet/procanet dataset/tiles/
-            fi
-        elif [ -d "dataset/temp_extract/7ch" ] || [ -d "dataset/temp_extract/procanet" ]; then
-            mv dataset/temp_extract/* dataset/tiles/
-        elif [ -d "dataset/temp_extract/tiles/7ch" ] || [ -d "dataset/temp_extract/tiles/procanet" ]; then
-            mv dataset/temp_extract/tiles/* dataset/tiles/
+        # Hanya ekstrak folder yang dibutuhkan (menghemat disk space & sangat cepat di SSD lokal)
+        unzip -q "$ZIP_FILE" "$ZIP_PATTERN" -d /tmp/temp_extract
+        
+        # Pindahkan ke folder tujuan local SSD
+        if [ "$ARCHITECTURE" = "unet" ]; then
+            mv /tmp/temp_extract/tiles_7ch/7ch "$LOCAL_TILE_ROOT"/
         else
-            mv dataset/temp_extract/* dataset/tiles/
+            mv /tmp/temp_extract/tiles_procanet/procanet "$LOCAL_TILE_ROOT"/
         fi
         
-        rm -rf dataset/temp_extract
-        rm "$ZIP_FILE"
-        echo "✔ Ekstraksi dataset selesai ke dataset/tiles/"
+        rm -rf /tmp/temp_extract
+        echo "✔ Ekstraksi folder $TARGET_FOLDER selesai ke $LOCAL_TILE_ROOT"
     else
-        echo "❌ ERROR: File zip dataset tidak ditemukan!"
+        echo "❌ ERROR: Gagal menyiapkan file zip dataset!"
         exit 1
     fi
 fi
@@ -189,7 +196,7 @@ python3 scripts/train_segmentation.py \
       --fold all \
       --tuning-preset "$TUNING_PRESET" \
       --early-stopping-patience "$EARLY_STOPPING_PATIENCE" \
-      --tile-root dataset/tiles
+      --tile-root "$LOCAL_TILE_ROOT"
 
 echo "========================================="
 echo "  Training Selesai dengan Sukses!"
