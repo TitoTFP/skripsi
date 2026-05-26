@@ -27,6 +27,7 @@ env/
 *.key
 *.credentials.json
 service-account*.json
+kaggle.json
 
 # Notebooks and interactive work
 .ipynb_checkpoints/
@@ -47,6 +48,14 @@ tmp/
 temp/
 runs/
 outputs/
+
+# Model checkpoints and weights
+*.pt
+*.pth
+*.ckpt
+*.pb
+*.onnx
+*.h5
 
 # Generated DEMNAS exports
 DEMNAS_Exports/

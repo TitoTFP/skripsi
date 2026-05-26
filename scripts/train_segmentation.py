@@ -116,6 +116,7 @@ def run_training(args: argparse.Namespace) -> None:
         shuffle=True,
         num_workers=args.num_workers,
         pin_memory=device.type == "cuda",
+        persistent_workers=args.num_workers > 0,
     )
     val_loader = DataLoader(
         val_dataset,
@@ -123,9 +124,17 @@ def run_training(args: argparse.Namespace) -> None:
         shuffle=False,
         num_workers=args.num_workers,
         pin_memory=device.type == "cuda",
+        persistent_workers=args.num_workers > 0,
     )
 
     model = build_model(args.architecture, args.base_channels).to(device)
+    if hasattr(torch, "compile") and device.type == "cuda":
+        try:
+            model = torch.compile(model)
+            print("✔ Model compiled successfully using torch.compile")
+        except Exception as e:
+            print(f"Compilation skipped: {e}")
+
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = build_scheduler(optimizer, args.lr_scheduler, args.lr_factor, args.lr_patience)
     amp_effective = resolve_amp_enabled(args.amp, device)
