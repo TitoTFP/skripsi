@@ -96,6 +96,11 @@ fi
 echo "[2/5] Installing dependencies via uv..."
 uv pip install --system kaggle whitebox earthengine-api tqdm
 
+# Install GDAL python bindings yang cocok dengan versi libgdal sistem di dalam Conda
+GDAL_VERSION=$(gdal-config --version)
+echo "Installing GDAL Python bindings (version $GDAL_VERSION) in Conda environment..."
+uv pip install --system "GDAL==$GDAL_VERSION"
+
 # ------------------------------------------------------------------------------
 # 3. Setup Kredensial Kaggle API
 # ------------------------------------------------------------------------------
