@@ -95,6 +95,7 @@ docs/
 
 # Tool configurations
 .antigravitycli/
+.codegraph/
 
 # Kaggle temporary staging
 kaggle_kernel/
