@@ -34,7 +34,10 @@ class FloodTileDataset(Dataset):
     ) -> None:
         self.split = split
         self.architecture = architecture.lower()
-        self.root = Path(root) if root is not None else DEFAULT_TILE_ROOT
+        root_path = Path(root) if root is not None else DEFAULT_TILE_ROOT
+        if root_path.name in ("7ch", "procanet", "unet"):
+            root_path = root_path.parent
+        self.root = root_path
         self.rng = rng or np.random.default_rng()
         self.augment = (split == "train") if augment is None else bool(augment and split == "train")
         self.water_river_as_flood = water_river_as_flood
