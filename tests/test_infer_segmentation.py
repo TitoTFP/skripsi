@@ -47,6 +47,29 @@ class InferSegmentationTests(unittest.TestCase):
         self.assertTrue(args.write_geotiff)
         self.assertEqual(args.threshold, 0.6)
 
+    def test_parse_args_omitted_region(self):
+        args = parse_args(
+            [
+                "--checkpoint",
+                "runs/unet/fold_0/best.pt",
+                "--output-dir",
+                "runs/inference",
+            ]
+        )
+        self.assertIsNone(args.regions)
+
+    def test_parse_args_empty_region_flag(self):
+        args = parse_args(
+            [
+                "--checkpoint",
+                "runs/unet/fold_0/best.pt",
+                "--region",
+                "--output-dir",
+                "runs/inference",
+            ]
+        )
+        self.assertEqual(args.regions, ["all"])
+
     def test_resolve_checkpoint_settings_uses_checkpoint_config_before_fallbacks(self):
         checkpoint = {
             "architecture": "unet",

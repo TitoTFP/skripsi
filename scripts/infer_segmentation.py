@@ -32,7 +32,7 @@ gdal.UseExceptions()
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run flood segmentation inference from a checkpoint.")
     parser.add_argument("--checkpoint", type=Path, required=True)
-    parser.add_argument("--region", dest="regions", action="append", required=True)
+    parser.add_argument("--region", dest="regions", action="append", nargs="?", const="all", default=None)
     parser.add_argument("--threshold", type=float, default=0.5)
     parser.add_argument("--batch-size", type=int, default=2)
     parser.add_argument("--num-workers", type=int, default=0)
@@ -58,15 +58,22 @@ def main() -> None:
         base_channels_fallback=args.base_channels,
     )
     model = build_model(architecture, base_channels).to(device)
-    model.load_state_dict(checkpoint["model_state_dict"])
+    state_dict = checkpoint["model_state_dict"]
+    clean_state_dict = {k.replace("_orig_mod.", ""): v for k, v in state_dict.items()}
+    model.load_state_dict(clean_state_dict)
     model.eval()
 
     output_dir = args.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    regions = args.regions
+    if not regions or "all" in regions:
+        from scripts.preprocessing_utils import CV_REGIONS, TEST_REGION
+        regions = [TEST_REGION] + list(CV_REGIONS)
+
     region_summaries = []
     total_stats = InferenceStats()
-    for region in args.regions:
+    for region in regions:
         region_summary = infer_region(
             model=model,
             architecture=architecture,

@@ -164,7 +164,7 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
   - Grafik tersimpan di `runs/training_curves.png`.
   - Kurva ini merangkum hasil training baseline U-Net dan ProCANet yang sudah ada di `runs/`.
 
-- [ ] Evaluasi model pada split test.
+- [x] Evaluasi model pada split test.
   - Inferensi U-Net dan ProCANet pada test set.
   - Script inferensi tersedia di `scripts.infer_segmentation`.
   - Pilih checkpoint via `--checkpoint`, wilayah via `--region`, dan GeoTIFF mosaic opsional via `--write-geotiff`.
@@ -172,20 +172,24 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
   - Hitung IoU.
   - Hitung F1-score/Dice.
   - Hitung akurasi bila tetap dipakai sesuai proposal.
+  - Evaluasi diselesaikan pada 2026-06-04 untuk data uji Aceh Utara.
 
-- [ ] Analisis komparatif hasil.
+- [x] Analisis komparatif hasil.
   - Bandingkan U-Net vs ProCANet.
   - Jelaskan apakah cross-attention membantu fusi SAR, optis, dan topografi.
   - Analisis false positive/false negative pada wilayah S2 kosong atau hampir kosong.
+  - Hasil ditulis di `runs/final/comparative_analysis.md`.
 
-- [ ] Visualisasi hasil segmentasi.
+- [x] Visualisasi hasil segmentasi.
   - Simpan contoh overlay prediksi vs label.
   - Tampilkan perbandingan input Sentinel-1, HSV Sentinel-2, DEMNAS, label, prediksi U-Net, dan prediksi ProCANet.
+  - Visualisasi plot disimpan di `runs/final/evaluation_plots.png` menggunakan `scripts.visualize_results`.
 
-- [ ] Dokumentasi eksperimen.
+- [x] Dokumentasi eksperimen.
   - Buat tabel konfigurasi training.
   - Buat tabel hasil evaluasi.
   - Catat hardware, runtime, seed, dan versi dependency.
+  - Hasil dicatat di `runs/final/comparative_analysis.md`.
 
 - [ ] Revisi Bab 3 proposal/laporan agar sama dengan implementasi akhir.
   - Sesuaikan sumber label: UNOSAT sebagai proxy label utama.
