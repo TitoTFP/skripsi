@@ -1,7 +1,7 @@
 # TODO Skripsi
 
 Sumber: `5003221164_Proposal TA Final.docx`, terutama Bab 3 Metode Penelitian.
-Status dicek terhadap isi repo pada 2026-05-15.
+Status dicek terhadap isi repo pada 2026-06-06.
 
 Topik penelitian: integrasi Sentinel-1, Sentinel-2, dan DEMNAS untuk deteksi area banjir di Sumatra dengan baseline U-Net dan model ProCANet.
 
@@ -71,19 +71,12 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
   - `dataset/preprocessing_todo.md`
   - `README.md`
 
-## Belum Dilakukan
-
-- [ ] Revisi narasi label pada proposal/laporan.
-  - Proposal awal masih menulis alur "pseudo ground truth" berbasis NDWI, threshold SAR, slope, rule-based fusion, morfologi, dan hand-correction.
-  - Narasi final perlu diganti: UNOSAT dipakai sebagai proxy label utama untuk flood segmentation.
-  - Jelaskan `FloodExtent_*` sebagai flood positif, `AnalysisExtent_*` sebagai valid mask, dan `WaterExtent_*`/river sebagai auxiliary mask.
-
 - [x] Implementasi dataset loader training.
   - Loader U-Net membaca `.npz` tile dari `dataset/tiles/7ch/`.
   - Loader ProCANet membaca `.npz` tile dari `dataset/tiles/procanet/`.
   - Loader mendukung mode fold via `fold=0..4` untuk spatial CV region-level.
   - Loader perlu mengembalikan feature tensor, `y`, `valid_mask`, dan metadata.
-  - Loss dan metrik wajib mengabaikan piksel dengan effective mask `valid_mask & feature_valid_mask`.
+  - Loss dan metrik wajib mengabaikan piksel di luar effective mask `valid_mask & feature_valid_mask`.
   - Implemented in `training.datasets`, `training.losses`, and `training.metrics`.
 
 - [x] Implementasi augmentasi data dinamis.
@@ -136,7 +129,7 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
   - Automatic mixed precision tersedia lewat `--amp`; efektif hanya saat device CUDA.
   - Metrics CSV menambahkan kolom `lr`.
 
-- [x] Training baseline U-Net.
+- [x] Training baseline U-Net (Legacy Run).
   - Training sudah dijalankan pada split train.
   - Validasi sudah dijalankan pada split validation.
   - Output ada di `runs/baseline_unet/`.
@@ -148,7 +141,7 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
   - Best validation Dice/F1 pada epoch checkpoint: `0.7548556726`.
   - Early stopping berhenti pada epoch `10`.
 
-- [x] Training ProCANet.
+- [x] Training ProCANet (Legacy Run).
   - Training sudah dijalankan dengan input dua encoder.
   - Validasi sudah dijalankan pada split validation.
   - Output ada di `runs/procanet/`.
@@ -160,19 +153,32 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
   - Best validation Dice/F1 pada epoch checkpoint: `0.7672857524`.
   - Early stopping berhenti pada epoch `17`.
 
+- [x] Tuning Hyperparameter dengan 5-Fold Cross-Validation & Grid Search.
+  - Tuning diselesaikan secara lengkap pada 10 wilayah pelatihan/validasi.
+  - Analisis hasil tuning didokumentasikan di `notebooks/hyperparameter_tuning_analysis.ipynb`.
+  - Hasil terbaik (mean ± std):
+    - **U-Net**: `grid_lr_5e-5_wd_1e-4` (Mean Val IoU: `0.6423`, Mean Val Dice: `0.7711`).
+    - **ProCANet**: `grid_lr_1e-4_wd_1e-4` (Mean Val IoU: `0.6531`, Mean Val Dice: `0.7785`).
+
+- [x] Training Model Final (Train + Validation Combined).
+  - Menggunakan script `scripts/train_final.py` untuk melatih model gabungan pada 10 wilayah dengan parameter terbaik.
+  - Output checkpoint tersimpan sebagai `runs/final/{architecture}/final.pt`.
+  - Parameter U-Net: `lr=5e-5`, `epochs=21` (rata-rata CV), `batch_size=8`.
+  - Parameter ProCANet: `lr=1e-4`, `epochs=18` (rata-rata CV), `batch_size=8`.
+
+- [x] Implementasi Suite Unit Testing.
+  - Mengembangkan 60 unit test di folder `tests/` untuk memvalidasi fungsionalitas pipeline preprocessing, dataset loaders, arsitektur model, masking loss, dan loop pelatihan.
+  - Seluruh pengujian berjalan sukses (`OK`).
+
 - [x] Visualisasi kurva training awal.
   - Grafik tersimpan di `runs/training_curves.png`.
   - Kurva ini merangkum hasil training baseline U-Net dan ProCANet yang sudah ada di `runs/`.
 
 - [x] Evaluasi model pada split test.
-  - Inferensi U-Net dan ProCANet pada test set.
-  - Script inferensi tersedia di `scripts.infer_segmentation`.
-  - Pilih checkpoint via `--checkpoint`, wilayah via `--region`, dan GeoTIFF mosaic opsional via `--write-geotiff`.
-  - Hitung confusion matrix piksel: TP, FP, TN, FN.
-  - Hitung IoU.
-  - Hitung F1-score/Dice.
-  - Hitung akurasi bila tetap dipakai sesuai proposal.
-  - Evaluasi diselesaikan pada 2026-06-04 untuk data uji Aceh Utara.
+  - Inferensi U-Net dan ProCANet pada test set wilayah **Aceh Utara** menggunakan checkpoint final model (`final.pt`).
+  - Hasil Evaluasi Akhir:
+    - **U-Net**: IoU `85.10%` (`0.85099`), Dice/F1 `91.95%` (`0.91950`), Akurasi `97.07%` (`0.97073`) (TP: `16,863,330`, TN: `81,075,762`, FP: `1,227,212`, FN: `1,725,554`).
+    - **ProCANet**: IoU `83.83%` (`0.83830`), Dice/F1 `91.20%` (`0.91204`), Akurasi `96.88%` (`0.96875`) (TP: `16,344,540`, TN: `81,394,556`, FP: `908,418`, FN: `2,244,344`).
 
 - [x] Analisis komparatif hasil.
   - Bandingkan U-Net vs ProCANet.
@@ -191,11 +197,30 @@ Catatan metodologi terbaru: rancangan pseudo-label rule-based pada proposal awal
   - Catat hardware, runtime, seed, dan versi dependency.
   - Hasil dicatat di `runs/final/comparative_analysis.md`.
 
-- [ ] Revisi Bab 3 proposal/laporan agar sama dengan implementasi akhir.
+## Belum Dilakukan
+
+- [ ] Revisi narasi label pada proposal/laporan.
+  - Proposal awal masih menulis alur "pseudo ground truth" berbasis NDWI, threshold SAR, slope, rule-based fusion, morfologi, dan hand-correction.
+  - Narasi final perlu diganti: UNOSAT dipakai sebagai proxy label utama untuk flood segmentation.
+  - Jelaskan `FloodExtent_*` sebagai flood positif, `AnalysisExtent_*` sebagai valid mask, dan `WaterExtent_*`/river sebagai auxiliary mask.
+
+- [ ] Revisi Bab 3 (Metodologi) proposal/laporan agar sama dengan implementasi akhir.
   - Sesuaikan sumber label: UNOSAT sebagai proxy label utama.
-  - Sesuaikan struktur split aktual.
-  - Sesuaikan urutan channel aktual.
+  - Sesuaikan struktur split aktual (spatial cross-validation).
+  - Sesuaikan urutan channel aktual (7-band input).
   - Sesuaikan penanganan wilayah Sentinel-2 kosong/hampir kosong.
+
+- [ ] Penulisan Bab 4 (Hasil dan Analisis/Pembahasan) Laporan TA.
+  - Dokumentasikan hasil komparasi performa model final U-Net vs ProCANet pada data uji Aceh Utara.
+  - Ulas karakteristik spasial prediksi: ProCANet memiliki false positive (FP) lebih rendah berkat modul cross-attention, tetapi sensitivitas deteksi (FN) sedikit meningkat.
+  - Analisis pengaruh noise Sentinel-2 (misal wilayah dengan HSV=0).
+
+- [ ] Penulisan Bab 5 (Kesimpulan dan Saran) Laporan TA.
+  - Rangkum performa fusi multi-sensor SAR, optis, dan topografi dalam mendeteksi area banjir.
+  - Berikan rekomendasi/saran untuk penelitian selanjutnya (misalnya augmentasi berbasis SAR khusus atau peningkatan kualitas input optis).
+
+- [ ] Pembersihan dan pengarsipan data repositori.
+  - Pindahkan atau cadangkan file zip besar (`procanet_old.zip`, `procanet_runs.zip`) di direktori `runs/` untuk menghemat ruang penyimpanan.
 
 ## Catatan Penting
 

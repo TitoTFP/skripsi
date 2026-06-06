@@ -48,6 +48,8 @@ tmp/
 temp/
 runs/
 outputs/
+infer/
+
 
 # Model checkpoints and weights
 *.pt
