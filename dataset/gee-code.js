@@ -1250,3 +1250,4 @@ downloadButton.onClick(downloadCitra);
 
 // Jalankan default saat script dibuka
 cariCitra();
+
