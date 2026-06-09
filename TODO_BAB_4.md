@@ -43,12 +43,12 @@ Bagian ini membahas hasil rasterisasi label acuan banjir (UNOSAT) dan pembagian 
   - [x] Jelaskan pembentukan `label_valid_mask.tif` yang membatasi evaluasi hanya pada area analisis UNOSAT yang beririsan dengan ROI wilayah administratif.
   - [x] Jelaskan pemisahan auxiliary mask `label_water_river_mask.tif` agar badan air permanen tidak bias sebagai area banjir baru.
 
-- [ ] **4.2.2 Hasil Pemotongan Citra (Tiling) dan Pembagian Dataset Spasial**
-  - [ ] Jelaskan pemotongan raster menjadi tile berukuran $512 \times 512$ piksel dengan stride overlap $256$.
-  - [ ] Bahas kebijakan **Spatial Cross-Validation**:
+- [x] **4.2.2 Hasil Pemotongan Citra (Tiling) dan Pembagian Dataset Spasial**
+  - [x] Jelaskan pemotongan raster menjadi tile berukuran $512 \times 512$ piksel dengan stride overlap $256$.
+  - [x] Bahas kebijakan **Spatial Cross-Validation**:
     - **Aceh Utara** dikunci sebagai data uji independen (*final test holdout*) sebanyak **493 tile** (332 positif, 161 background).
     - **10 wilayah lainnya** dibagi menjadi **5-fold spatial cross-validation** sebanyak **3930 tile** untuk pelatihan dan validasi internal.
-  - [ ] Tampilkan tabel sebaran jumlah tile dan piksel banjir per wilayah (ambil data dari tabel ringkasan di [README.md](file:///home/nozomi/Productive/skripsi/README.md#L376-L389)).
+  - [x] Tampilkan tabel sebaran jumlah tile dan piksel banjir per wilayah (ambil data dari tabel ringkasan di [README.md](file:///home/nozomi/Productive/skripsi/README.md#L376-L389)).
 
 ---
 
