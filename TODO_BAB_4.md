@@ -38,10 +38,10 @@ Bagian ini menjelaskan karakteristik citra satelit dan data elevasi setelah mela
 
 Bagian ini membahas hasil rasterisasi label acuan banjir (UNOSAT) dan pembagian dataset spasial.
 
-- [ ] **4.2.1 Hasil Rasterisasi Label UNOSAT**
-  - [ ] Jelaskan pembentukan `label_flood_binary.tif` dari poligon `FloodExtent_*` UNOSAT.
-  - [ ] Jelaskan pembentukan `label_valid_mask.tif` yang membatasi evaluasi hanya pada area analisis UNOSAT yang beririsan dengan ROI wilayah administratif.
-  - [ ] Jelaskan pemisahan auxiliary mask `label_water_river_mask.tif` agar badan air permanen tidak bias sebagai area banjir baru.
+- [x] **4.2.1 Hasil Rasterisasi Label UNOSAT**
+  - [x] Jelaskan pembentukan `label_flood_binary.tif` dari poligon `FloodExtent_*` UNOSAT.
+  - [x] Jelaskan pembentukan `label_valid_mask.tif` yang membatasi evaluasi hanya pada area analisis UNOSAT yang beririsan dengan ROI wilayah administratif.
+  - [x] Jelaskan pemisahan auxiliary mask `label_water_river_mask.tif` agar badan air permanen tidak bias sebagai area banjir baru.
 
 - [ ] **4.2.2 Hasil Pemotongan Citra (Tiling) dan Pembagian Dataset Spasial**
   - [ ] Jelaskan pemotongan raster menjadi tile berukuran $512 \times 512$ piksel dengan stride overlap $256$.
