@@ -56,8 +56,8 @@ Bagian ini membahas hasil rasterisasi label acuan banjir (UNOSAT) dan pembagian 
 
 Bagian ini menjabarkan proses pencarian parameter optimal menggunakan Grid Search 5-fold cross-validation.
 
-- [ ] **4.3.1 Desain Grid Search**
-  - [ ] Jelaskan 6 kombinasi hyperparameter yang diuji untuk masing-masing model (kombinasi $lr \in \{1\times10^{-4}, 5\times10^{-5}, 1\times10^{-5}\}$ dan $wd \in \{1\times10^{-4}, 1\times10^{-5}\}$).
+- [x] **4.3.1 Desain Grid Search**
+  - [x] Jelaskan 6 kombinasi hyperparameter yang diuji untuk masing-masing model (kombinasi $lr \in \{1\times10^{-4}, 5\times10^{-5}, 1\times10^{-5}\}$ dan $wd \in \{1\times10^{-4}, 1\times10^{-5}\}$).
 
 - [ ] **4.3.2 Hasil Evaluasi Parameter Optimal**
   - [ ] Tampilkan tabel perbandingan nilai rata-rata *Mean Validation IoU* dan *Mean Validation Dice* untuk seluruh variasi (sumber analisis: [notebooks/hyperparameter_tuning_analysis.ipynb](file:///home/nozomi/Productive/skripsi/notebooks/hyperparameter_tuning_analysis.ipynb)).
