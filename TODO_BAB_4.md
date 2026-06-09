@@ -29,12 +29,12 @@ Subbab ini membahas hasil pemotongan citra (*tiling*) serta pembagian data untuk
 ## 4.3 Hasil Pelatihan dan Evaluasi Model
 Subbab ini memaparkan hasil numerik optimasi model, baik selama proses tuning hyperparameter maupun saat pengujian akhir.
 
-- [ ] **4.3.1 Hasil Tuning Hyperparameter (Grid Search)**
+- [x] **4.3.1 Hasil Tuning Hyperparameter (Grid Search)**
   - [x] Sajikan tabel evaluasi 6 kombinasi parameter ($lr \in \{1\times10^{-4}, 5\times10^{-5}, 1\times10^{-5}\}$ dan $wd \in \{1\times10^{-4}, 1\times10^{-5}\}$) untuk U-Net dan ProCANet.
   - [x] Bahas dinamika pengaruh *Learning Rate* dan *Weight Decay* ($L_2$ regularization) terhadap skor IoU dan loss validasi.
   - [x] Identifikasi konfigurasi parameter optimal: U-Net (`grid_lr_5e-5_wd_1e-4` dengan Mean Val IoU 0,6423) dan ProCANet (`grid_lr_1e-4_wd_1e-4` dengan Mean Val IoU 0,6531).
   - [x] Hubungkan temuan parameter optimal dengan literatur luar (misalnya Nemni dkk., 2020) dan kemukakan keterbatasan ruang Grid Search secara jujur.
-  - [ ] Tampilkan grafik kurva pelatihan (training vs validation loss/metrics) untuk merangkum stabilitas pelatihan (rujukan gambar: [runs/training_curves.png](file:///home/nozomi/Productive/skripsi/runs/training_curves.png)).
+  - [x] Tampilkan grafik kurva pelatihan (training vs validation loss/metrics) untuk merangkum stabilitas pelatihan (rujukan gambar: [runs/training_curves.png](file:///home/nozomi/Productive/skripsi/runs/training_curves.png)).
 
 - [ ] **4.3.2 Performa Model pada Wilayah Pengujian (Aceh Utara)**
   - [ ] Sajikan tabel evaluasi akhir perbandingan performa U-Net vs ProCANet pada data uji Aceh Utara menggunakan model final (`final.pt`).
