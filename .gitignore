@@ -46,7 +46,12 @@ Thumbs.db
 *.log
 tmp/
 temp/
-runs/
+runs/*
+!runs/final/
+runs/final/*
+!runs/final/demnas_spatial_comparison.png
+!runs/final/evaluation_plots.png
+!runs/final/s2_hsv_comparison.png
 outputs/
 infer/
 

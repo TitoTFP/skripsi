@@ -36,10 +36,12 @@ Subbab ini memaparkan hasil numerik optimasi model, baik selama proses tuning hy
   - [x] Hubungkan temuan parameter optimal dengan literatur luar (misalnya Nemni dkk., 2020) dan kemukakan keterbatasan ruang Grid Search secara jujur.
   - [x] Tampilkan grafik kurva pelatihan (training vs validation loss/metrics) untuk merangkum stabilitas pelatihan (rujukan gambar: [runs/training_curves.png](file:///home/nozomi/Productive/skripsi/runs/training_curves.png)).
 
-- [ ] **4.3.2 Performa Model pada Wilayah Pengujian (Aceh Utara)**
-  - [ ] Sajikan tabel evaluasi akhir perbandingan performa U-Net vs ProCANet pada data uji Aceh Utara menggunakan model final (`final.pt`).
-  - [ ] Tampilkan confusion matrix lengkap (nilai TP, TN, FP, FN) serta metrik akurasi, IoU, Dice/F1-Score.
-  - [ ] Bahas perbandingan kuantitatif secara detail (misalnya U-Net memiliki IoU sedikit lebih tinggi +1.27% dan mendeteksi lebih banyak piksel banjir/sensitivitas tinggi).
+- [x] **4.3.2 Performa Model pada Wilayah Pengujian (Aceh Utara)**
+  - [x] Sajikan tabel evaluasi akhir perbandingan performa U-Net vs ProCANet pada data uji Aceh Utara menggunakan model final (`final.pt`).
+  - [x] Tampilkan confusion matrix lengkap (nilai TP, TN, FP, FN) serta metrik akurasi, IoU, Dice/F1-Score.
+  - [x] Bahas perbandingan kuantitatif secara detail (misalnya U-Net memiliki IoU sedikit lebih tinggi +1.27% dan mendeteksi lebih banyak piksel banjir/sensitivitas tinggi).
+  - [x] Status terbaru: subbab sudah ditulis di `perbaikan/4.3.2.md` sebagai evaluasi akhir model pada data uji Aceh Utara.
+  - [x] Sudah memuat tabel metrik akhir, confusion matrix piksel, interpretasi trade-off U-Net vs ProCANet, visualisasi spasial satu tile (`Aceh_Utara_r001536_c006912.npz`), komparasi literatur ProCANet, dan keterbatasan evaluasi.
 
 ---
 
