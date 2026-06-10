@@ -576,27 +576,27 @@ Contoh narasi penutup:
 
 Bagian ini adalah checklist praktis supaya BAB 4 tidak terasa kosong.
 
-| Prioritas | Output | Subbab | Status |
-|---|---|---|---|
-| Wajib | Tabel statistik preprocessing VV, VH, HSV, Slope, HAND | 4.1.1 | [ ] |
-| Wajib | Tabel persentase `s2_valid_mask` per wilayah | 4.1.1 | [ ] |
-| Wajib | Gambar contoh channel VV, VH, HSV/pseudo-RGB, Slope, HAND | 4.1.1 | [ ] |
-| Wajib | Tabel verifikasi alignment raster | 4.1.2 | [ ] |
-| Wajib | Gambar overlay OSM dengan layer stack | 4.1.2 | [ ] |
-| Wajib | Tabel statistik label UNOSAT per wilayah | 4.2 | [ ] |
-| Wajib | Tabel jumlah tile positif/background per wilayah | 4.2 | [ ] |
-| Wajib | Tabel 5-fold spatial cross-validation | 4.3 | [ ] |
-| Wajib | Tabel spesifikasi arsitektur U-Net dan ProCANet | 4.4.1 | [ ] |
-| Wajib | Tabel verifikasi forward pass model | 4.4.1 | [ ] |
-| Wajib | Tabel grid search hyperparameter | 4.4.2 | [ ] |
-| Wajib | Grafik training/validation loss, IoU, dan Dice | 4.4.3 | [ ] |
-| Wajib | Tabel metrik final U-Net vs ProCANet | 4.5 | [ ] |
-| Wajib | Tabel confusion matrix TP, TN, FP, FN | 4.5 | [ ] |
-| Wajib | Panel visual prediksi U-Net vs ProCANet | 4.6 | [ ] |
-| Sangat disarankan | Error map TP/FP/FN/TN | 4.6 | [ ] |
-| Sangat disarankan | Tabel ringkasan U-Net vs ProCANet | 4.7 | [ ] |
-| Sangat disarankan | Tabel studi kasus Sentinel-2 kosong/hampir kosong | 4.8 | [ ] |
-| Opsional | Tabel mini ringkasan temuan BAB 4 | 4.9 | [ ] |
+| Prioritas | Output | Subbab | Status | Artefak |
+|---|---|---:|:---:|---|
+| Wajib | Tabel statistik preprocessing VV, VH, HSV, Slope, HAND | 4.1.1 | [x] | `outputs/bab4/tables/4_1_1_preprocessing_stats.csv` |
+| Wajib | Tabel persentase `s2_valid_mask` per wilayah | 4.1.1 | [x] | `outputs/bab4/tables/4_1_1_s2_valid_mask_by_region.csv` |
+| Wajib | Gambar contoh channel VV, VH, HSV/pseudo-RGB, Slope, HAND | 4.1.1 | [x] | `outputs/bab4/figures/4_1_1_channel_example_aceh_utara.png` |
+| Wajib | Tabel verifikasi alignment raster | 4.1.2 | [x] | `outputs/bab4/tables/4_1_2_alignment_verification.csv` |
+| Wajib | Gambar overlay OSM dengan layer stack | 4.1.2 | [x] | `outputs/bab4/figures/4_1_2_osm_overlay_stack_aceh_utara.png` |
+| Wajib | Tabel statistik label UNOSAT per wilayah | 4.2 | [x] | `outputs/bab4/tables/4_2_label_mask_tile_stats.csv` |
+| Wajib | Tabel jumlah tile positif/background per wilayah | 4.2 | [x] | `outputs/bab4/tables/4_2_tile_distribution_by_split_region.csv` |
+| Wajib | Tabel 5-fold spatial cross-validation / split spasial | 4.3 | [x] | `outputs/bab4/tables/4_3_spatial_split_summary.csv` |
+| Wajib | Tabel arsitektur U-Net dan ProCANet | 4.4.1 | [x] | `outputs/bab4/tables/4_4_1_model_architecture_specs.csv` |
+| Wajib | Verifikasi/kontrak forward pass model | 4.4.1 | [x] | Dicakup di `outputs/bab4/tables/4_4_1_model_architecture_specs.csv` |
+| Wajib | Tabel/heatmap grid search hyperparameter | 4.4.2 | [x] | `outputs/bab4/tables/4_4_2_hyperparameter_tuning_summary.csv` |
+| Wajib | Grafik training/validation loss, IoU, dan Dice | 4.4.3 | [x] | `outputs/bab4/figures/4_4_3_training_curves.png` |
+| Wajib | Tabel metrik final U-Net vs ProCANet | 4.5 | [x] | `outputs/bab4/tables/4_5_final_metrics.csv` |
+| Wajib | Tabel confusion matrix TP, TN, FP, FN | 4.5 | [x] | `outputs/bab4/tables/4_5_confusion_matrix_pixels.csv` |
+| Wajib | Panel visual prediksi U-Net vs ProCANet | 4.6 | [x] | `outputs/bab4/figures/4_6_segmentation_panel_aceh_utara.png` |
+| Sangat disarankan | Error map TP/FP/FN/TN | 4.6 | [x] | `outputs/bab4/figures/4_6_error_map_aceh_utara.png` |
+| Sangat disarankan | Tabel ringkasan U-Net vs ProCANet | 4.7 | [x] | `outputs/bab4/tables/4_7_unet_vs_procanet_effectiveness_summary.csv` |
+| Sangat disarankan | Tabel studi kasus Sentinel-2 kosong/hampir kosong | 4.8 | [x] | `outputs/bab4/tables/4_8_difficult_data_case_studies.csv` |
+| Opsional | Tabel mini ringkasan temuan BAB 4 | 4.9 | [x] | `outputs/bab4/tables/4_9_bab4_findings_summary.csv` |
 
 ---
 
