@@ -113,7 +113,7 @@ def main() -> None:
 
     # Panel A: SAR (VV)
     im_sar = axes[0, 0].imshow(vv, cmap="gray")
-    axes[0, 0].set_title("Sentinel-1 SAR (VV Normalized)")
+    axes[0, 0].set_title("(a)", fontsize=30, y=-0.15)
     fig.colorbar(im_sar, ax=axes[0, 0], fraction=0.046, pad=0.04)
 
     # Panel B: Optical (Sentinel-2 HSV reconstructed to RGB)
@@ -126,11 +126,11 @@ def main() -> None:
         axes[0, 1].imshow(rgb_masked)
     else:
         axes[0, 1].imshow(rgb)
-    axes[0, 1].set_title("Sentinel-2 Pseudo-RGB (HSV to RGB)")
+    axes[0, 1].set_title("(b)", fontsize=30, y=-0.15)
 
     # Panel C: Topography (DEMNAS Slope)
     im_slope = axes[0, 2].imshow(slope, cmap="terrain")
-    axes[0, 2].set_title("DEMNAS Slope (Normalized)")
+    axes[0, 2].set_title("(c)", fontsize=30, y=-0.15)
     fig.colorbar(im_slope, ax=axes[0, 2], fraction=0.046, pad=0.04)
 
     # Define a custom color map for segmentation: 0 = Dark Green (non-flood), 1 = Blue (flood)
@@ -139,20 +139,20 @@ def main() -> None:
 
     # Panel D: Ground Truth
     im_gt = axes[1, 0].imshow(y_gt_masked, cmap=cmap_seg, vmin=0, vmax=1)
-    axes[1, 0].set_title("Ground Truth (UNOSAT)")
+    axes[1, 0].set_title("(d)", fontsize=30, y=-0.15)
     # Custom colorbar/legend
     cbar_gt = fig.colorbar(im_gt, ax=axes[1, 0], fraction=0.046, pad=0.04, ticks=[0.25, 0.75])
     cbar_gt.ax.set_yticklabels(["Non-Flood", "Flood"])
 
     # Panel E: U-Net Prediction
     im_unet = axes[1, 1].imshow(unet_pred_masked, cmap=cmap_seg, vmin=0, vmax=1)
-    axes[1, 1].set_title("U-Net Prediction")
+    axes[1, 1].set_title("(e)", fontsize=30, y=-0.15)
     cbar_unet = fig.colorbar(im_unet, ax=axes[1, 1], fraction=0.046, pad=0.04, ticks=[0.25, 0.75])
     cbar_unet.ax.set_yticklabels(["Non-Flood", "Flood"])
 
     # Panel F: ProCANet Prediction
     im_pro = axes[1, 2].imshow(procanet_pred_masked, cmap=cmap_seg, vmin=0, vmax=1)
-    axes[1, 2].set_title("ProCANet Prediction")
+    axes[1, 2].set_title("(f)", fontsize=30, y=-0.15)
     cbar_pro = fig.colorbar(im_pro, ax=axes[1, 2], fraction=0.046, pad=0.04, ticks=[0.25, 0.75])
     cbar_pro.ax.set_yticklabels(["Non-Flood", "Flood"])
 
@@ -162,7 +162,7 @@ def main() -> None:
             ax.set_xticks([])
             ax.set_yticks([])
 
-    fig.suptitle(f"Visualisasi Hasil Segmentasi Banjir Wilayah Aceh Utara\nTile: {tile_name}", fontsize=16, fontweight="bold")
+    # fig.suptitle(f"Visualisasi Hasil Segmentasi Banjir Wilayah Aceh Utara\nTile: {tile_name}", fontsize=16, fontweight="bold")
     plt.tight_layout()
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
