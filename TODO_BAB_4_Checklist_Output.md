@@ -53,8 +53,8 @@ Dokumen ini adalah turunan praktis dari `TODO_BAB_4_Lengkap.md`. Fokusnya hanya 
 | [x] | W | Statistik validitas Sentinel-2 | Tabel | Wilayah, jumlah piksel valid S2, persentase `s2_valid_mask`, status kualitas: baik/rendah/hampir kosong/kosong. | `s2_valid_mask.tif`, `feature_preprocessing_summary.csv` |
 | [x] | W | Statistik DEMNAS turunan | Tabel | Wilayah, Slope min/max/mean/std, HAND min/max/mean/std. | `slope_norm.tif`, `hand_norm.tif` |
 | [x] | W | Contoh channel input multisensor | Gambar panel | VV, VH, pseudo-RGB/HSV, Slope, HAND pada wilayah representatif. | `vv_norm.tif`, `vh_norm.tif`, `hue.tif`, `saturation.tif`, `value.tif`, `slope_norm.tif`, `hand_norm.tif` |
-| [ ] | D | Contoh perbandingan S2 valid vs S2 kosong | Gambar panel | Satu wilayah dengan S2 valid dan satu wilayah S2 kosong/hampir kosong. | `s2_valid_mask.tif`, HSV/pseudo-RGB |
-| [ ] | N | Interpretasi karakter input | Narasi | Jelaskan fungsi SAR, optis, dan topografi; jelaskan kenapa fusi multisensor diperlukan. | Hasil tabel/gambar 4.1.1 |
+| [x] | D | Contoh perbandingan S2 valid vs S2 kosong | Gambar panel | Satu wilayah dengan S2 valid dan satu wilayah S2 kosong/hampir kosong. | `s2_valid_mask.tif`, HSV/pseudo-RGB |
+| [x] | N | Interpretasi karakter input | Narasi | Jelaskan fungsi SAR, optis, dan topografi; jelaskan kenapa fusi multisensor diperlukan. | Hasil tabel/gambar 4.1.1 |
 
 Catatan output: tabel statistik tidak perlu terlalu besar. Jika jumlah wilayah banyak, gunakan ringkasan per wilayah dan lampirkan statistik detail di lampiran.
 
@@ -299,8 +299,8 @@ Catatan visual: grafik boleh berupa satu gambar multi-panel agar tidak terlalu b
 
 | Status | Subbab | Narasi yang harus ada |
 |---|---|---|
-| [ ] | 4.1.1 | Interpretasi karakter input SAR, optis, dan topografi. |
-| [ ] | 4.1.1 | Alasan fusi multisensor diperlukan. |
+| [x] | 4.1.1 | Interpretasi karakter input SAR, optis, dan topografi. |
+| [x] | 4.1.1 | Alasan fusi multisensor diperlukan. |
 | [ ] | 4.1.2 | Penjelasan kenapa alignment/stacking penting untuk akurasi model. |
 | [x] | 4.1.2 | Kesimpulan bahwa stack layak digunakan jika semua layer selaras. |
 | [ ] | 4.2 | Perbedaan fungsi `label_flood_binary`, `label_valid_mask`, dan `water_river_mask`. |
