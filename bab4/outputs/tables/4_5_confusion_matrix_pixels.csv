@@ -1,0 +1,3 @@
+model,region,true_positive,true_negative,false_positive,false_negative,total_evaluated_pixels,reference_flood_pixels,predicted_flood_pixels,precision,recall,false_positive_rate,false_negative_rate
+U-Net,Aceh_Utara,16863330,81075762,1227212,1725554,100891858,18588884,18090542,0.932163,0.907173,0.014911,0.092827
+ProCANet,Aceh_Utara,16344540,81394556,908418,2244344,100891858,18588884,17252958,0.947347,0.879264,0.011037,0.120736

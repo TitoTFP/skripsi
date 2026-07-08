@@ -1,0 +1,12 @@
+region,split,total_tile,tile_positive,tile_background,positive_tile_pct,background_tile_pct,positive_to_background_ratio
+Aceh_Besar,cv,518,315,203,60.8108,39.1892,1.5517
+Aceh_Tamiang,cv,465,328,137,70.5376,29.4624,2.3942
+Aceh_Timur,cv,1063,543,520,51.0818,48.9182,1.0442
+Aceh_Utara,test,493,332,161,67.3428,32.6572,2.0621
+Agam,cv,278,139,139,50.0,50.0,1.0
+Banda_Aceh,cv,16,16,0,100.0,0.0,16.0
+Bireuen,cv,303,186,117,61.3861,38.6139,1.5897
+Langsa,cv,41,37,4,90.2439,9.7561,9.25
+Pasaman_Barat,cv,522,261,261,50.0,50.0,1.0
+Pidie,cv,572,286,286,50.0,50.0,1.0
+Pidie_Jaya,cv,152,83,69,54.6053,45.3947,1.2029

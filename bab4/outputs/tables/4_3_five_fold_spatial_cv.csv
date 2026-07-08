@@ -1,0 +1,6 @@
+fold,validation_regions,training_regions,held_out_final_test,train_tile_count,validation_tile_count,final_test_tile_count,validation_pct_of_cv_tiles
+0,"Pidie, Pidie_Jaya","Aceh_Besar, Banda_Aceh, Aceh_Tamiang, Aceh_Timur, Bireuen, Langsa, Agam, Pasaman_Barat",Aceh_Utara,3206,724,493,18.4224
+1,"Aceh_Besar, Banda_Aceh","Pidie, Pidie_Jaya, Aceh_Tamiang, Aceh_Timur, Bireuen, Langsa, Agam, Pasaman_Barat",Aceh_Utara,3396,534,493,13.5878
+2,"Aceh_Tamiang, Aceh_Timur","Pidie, Pidie_Jaya, Aceh_Besar, Banda_Aceh, Bireuen, Langsa, Agam, Pasaman_Barat",Aceh_Utara,2402,1528,493,38.8804
+3,"Bireuen, Langsa","Pidie, Pidie_Jaya, Aceh_Besar, Banda_Aceh, Aceh_Tamiang, Aceh_Timur, Agam, Pasaman_Barat",Aceh_Utara,3586,344,493,8.7532
+4,"Agam, Pasaman_Barat","Pidie, Pidie_Jaya, Aceh_Besar, Banda_Aceh, Aceh_Tamiang, Aceh_Timur, Bireuen, Langsa",Aceh_Utara,3130,800,493,20.3562

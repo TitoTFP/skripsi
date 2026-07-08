@@ -1,0 +1,4 @@
+component,verification_source,input_contract,expected_output,contract_found_in_source,status,note
+U-Net,tests/test_models.py::test_unet_forward_returns_binary_segmentation_logits,"torch.randn(2, 7, 64, 64)","(2, 1, 64, 64)",True,source_contract_verified,verifikasi kontrak forward pass dari test source; tidak menjalankan torch/retraining
+ProgressiveCrossAttentionBlock,tests/test_models.py::test_progressive_cross_attention_preserves_shape,"dua tensor encoder (2, 16, 32, 32)","(2, 16, 32, 32)",True,source_contract_verified,verifikasi kontrak forward pass dari test source; tidak menjalankan torch/retraining
+ProCANet,tests/test_models.py::test_procanet_forward_returns_binary_segmentation_logits,"dict encoder1=(2, 7, 64, 64), encoder2=(2, 2, 64, 64)","(2, 1, 64, 64)",True,source_contract_verified,verifikasi kontrak forward pass dari test source; tidak menjalankan torch/retraining

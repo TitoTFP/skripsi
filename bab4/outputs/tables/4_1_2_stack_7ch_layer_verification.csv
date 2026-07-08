@@ -1,0 +1,8 @@
+region,band,channel,description,raster_size,dtype,status
+Aceh_Utara,1,VV,VV,5824 x 8101,float32,Selaras
+Aceh_Utara,2,VH,VH,5824 x 8101,float32,Selaras
+Aceh_Utara,3,Hue,Hue,5824 x 8101,float32,Selaras
+Aceh_Utara,4,Saturation,Saturation,5824 x 8101,float32,Selaras
+Aceh_Utara,5,Value,Value,5824 x 8101,float32,Selaras
+Aceh_Utara,6,Slope,Slope,5824 x 8101,float32,Selaras
+Aceh_Utara,7,HAND,HAND,5824 x 8101,float32,Selaras

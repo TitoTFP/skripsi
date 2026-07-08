@@ -1,0 +1,12 @@
+region,raster_s2_valid_pct,tile_s2_valid_pixels,tile_valid_pixels,tile_s2_valid_pct,quality_status,source
+Aceh_Besar,28.4479,86170341,106956513,80.5658,baik,dataset/feature_preprocessing_summary.csv;dataset/preprocessing_summary.csv
+Aceh_Tamiang,0.0004,672,82307919,0.0008,hampir kosong,dataset/feature_preprocessing_summary.csv;dataset/preprocessing_summary.csv
+Aceh_Timur,28.7648,111438934,206802875,53.8865,baik,dataset/feature_preprocessing_summary.csv;dataset/preprocessing_summary.csv
+Aceh_Utara,45.582,81365271,102158650,79.646,baik,dataset/feature_preprocessing_summary.csv;dataset/preprocessing_summary.csv
+Agam,0.0,0,54576695,0.0,kosong,dataset/feature_preprocessing_summary.csv;dataset/preprocessing_summary.csv
+Banda_Aceh,37.5369,2130841,2532433,84.142,baik,dataset/feature_preprocessing_summary.csv;dataset/preprocessing_summary.csv
+Bireuen,55.9227,59076594,67149979,87.9771,baik,dataset/feature_preprocessing_summary.csv;dataset/preprocessing_summary.csv
+Langsa,0.0,0,7395290,0.0,kosong,dataset/feature_preprocessing_summary.csv;dataset/preprocessing_summary.csv
+Pasaman_Barat,0.0016,2496,115359798,0.0022,hampir kosong,dataset/feature_preprocessing_summary.csv;dataset/preprocessing_summary.csv
+Pidie,36.8179,106314945,110864777,95.8961,baik,dataset/feature_preprocessing_summary.csv;dataset/preprocessing_summary.csv
+Pidie_Jaya,52.3073,31261734,34130353,91.5951,baik,dataset/feature_preprocessing_summary.csv;dataset/preprocessing_summary.csv

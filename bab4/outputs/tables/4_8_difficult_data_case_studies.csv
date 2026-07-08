@@ -1,0 +1,12 @@
+region,split,tile_count,valid_pixels,flood_pct_of_valid,water_river_pct_of_valid,s2_valid_pct_of_valid,s2_valid_pct_feature_report,feature_valid_pct,s2_quality,difficulty_flags
+Aceh_Besar,cv,518,106956513,5.0759,2.9526,80.5658,28.4479,35.9132,baik,tidak dominan
+Aceh_Tamiang,cv,465,82307919,5.5627,7.3664,0.0008,0.0004,49.6807,hampir kosong,Sentinel-2 kosong/hampir kosong
+Aceh_Timur,cv,1063,206802875,12.865,9.5937,53.8865,28.7648,52.2497,baik,tidak dominan
+Aceh_Utara,test,493,102158650,21.6552,14.9649,79.646,45.582,56.3729,baik,badan air dominan; label banjir sangat dominan
+Agam,cv,278,54576695,2.3033,0.0,0.0,0.0,51.5946,kosong,Sentinel-2 kosong/hampir kosong
+Banda_Aceh,cv,16,2532433,12.9106,8.4695,84.142,37.5369,42.0761,baik,jumlah tile kecil
+Bireuen,cv,303,67149979,5.6992,3.7882,87.9771,55.9227,62.6938,baik,tidak dominan
+Langsa,cv,41,7395290,12.6266,17.4318,0.0,0.0,52.0175,kosong,Sentinel-2 kosong/hampir kosong; badan air dominan; jumlah tile kecil
+Pasaman_Barat,cv,522,115359798,1.2675,0.0,0.0022,0.0016,47.087,hampir kosong,Sentinel-2 kosong/hampir kosong
+Pidie,cv,572,110864777,8.4354,4.1548,95.8961,36.8179,38.3262,baik,tidak dominan
+Pidie_Jaya,cv,152,34130353,6.1512,3.8135,91.5951,52.3073,56.4286,baik,tidak dominan

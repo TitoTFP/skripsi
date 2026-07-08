@@ -1,0 +1,3 @@
+model,source_class,input_contract,encoder_depth,base_channels,encoder_channels,bottleneck_channels,decoder,attention,normalization,activation,output_channels,final_epochs,final_lr,final_weight_decay,checkpoint_size_mb
+U-Net,UNet,7-channel tensor,4,32,32-64-128-256,512,transpose convolution + skip concatenation,none,GroupNorm,ReLU,1,21,5e-05,0.0001,88.92
+ProCANet,ProCANet,"encoder1=7-channel, encoder2=2-channel auxiliary",4,32,32-64-128-256,512,transpose convolution + skip concatenation,progressive self/cross attention pada skip dan bottleneck,GroupNorm,ReLU,1,18,0.0001,0.0001,286.84

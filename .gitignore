@@ -53,6 +53,8 @@ runs/final/*
 !runs/final/evaluation_plots.png
 !runs/final/s2_hsv_comparison.png
 outputs/
+!bab4/outputs/
+!bab4/outputs/**
 infer/
 
 
@@ -103,6 +105,9 @@ docs/
 # Tool configurations
 .antigravitycli/
 .codegraph/
+
+# Local API/OSM cache
+/cache/
 
 # Kaggle temporary staging
 kaggle_kernel/

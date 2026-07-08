@@ -1,0 +1,3 @@
+tile,model,valid_pixels,true_positive,true_negative,false_positive,false_negative,tile_iou,tile_dice
+Aceh_Utara_r001280_c005632,U-Net,262144,235920,14620,392,11212,0.95312,0.975997
+Aceh_Utara_r001280_c005632,ProCANet,262144,234926,13314,1698,12206,0.944122,0.971258

@@ -1,0 +1,5 @@
+finding_id,topic,evidence,implication
+F1,validasi data sumber,"Tabel 4.1-4.8 dibangkitkan dari raster, CSV preprocessing, dan tile dataset",output BAB 4 dapat direproduksi tanpa membaca artefak lama
+F2,spatial validation,5-fold spatial CV memakai wilayah validasi terpisah dan Aceh_Utara sebagai final test,evaluasi lebih tahan terhadap spatial leakage
+F3,model final,model terbaik berdasarkan IoU final: U-Net (0.850992),pembahasan kinerja harus melihat IoU/Dice serta precision/recall
+F4,kondisi data ekstrem,Aceh_Utara memiliki 493 tile dan 79.646% piksel S2 valid,interpretasi visual tetap perlu memeriksa mask validitas dan kelas air permanen
