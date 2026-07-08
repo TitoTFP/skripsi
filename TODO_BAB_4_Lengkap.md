@@ -155,12 +155,12 @@ Tujuan subbab ini adalah menjelaskan kualitas label target dan distribusi datase
 
 Checklist 4.2:
 
-- [ ] Membuat tabel statistik label UNOSAT per wilayah.
-- [ ] Membuat visual `label_flood_binary`, `label_valid_mask`, dan `label_water_river_mask`.
-- [ ] Membuat tabel jumlah tile per wilayah.
-- [ ] Menjelaskan class imbalance di level piksel dan level tile.
-- [ ] Menjelaskan bahwa `water_river_mask` bukan label banjir utama.
-- [ ] Menjelaskan kenapa valid mask penting untuk loss dan evaluasi.
+- [x] Membuat tabel statistik label UNOSAT per wilayah.
+- [x] Membuat visual `label_flood_binary`, `label_valid_mask`, dan `label_water_river_mask`.
+- [x] Membuat tabel jumlah tile per wilayah.
+- [x] Menjelaskan class imbalance di level piksel dan level tile.
+- [x] Menjelaskan bahwa `water_river_mask` bukan label banjir utama.
+- [x] Menjelaskan kenapa valid mask penting untuk loss dan evaluasi.
 
 Data/berkas yang bisa dipakai:
 
@@ -190,11 +190,11 @@ Tujuan subbab ini adalah meyakinkan pembaca bahwa evaluasi tidak mengalami spati
 
 Checklist 4.3:
 
-- [ ] Menyebut Aceh_Utara sebagai final test region.
-- [ ] Membuat tabel 5-fold spatial cross-validation.
-- [ ] Membuat tabel jumlah tile train/val/test per fold.
-- [ ] Menjelaskan alasan ilmiah menghindari random split tile.
-- [ ] Menjelaskan spatial leakage secara singkat.
+- [x] Menyebut Aceh_Utara sebagai final test region.
+- [x] Membuat tabel 5-fold spatial cross-validation.
+- [x] Membuat tabel jumlah tile train/val/test per fold.
+- [x] Menjelaskan alasan ilmiah menghindari random split tile.
+- [x] Menjelaskan spatial leakage secara singkat.
 
 Contoh format tabel:
 
@@ -235,12 +235,12 @@ Bagian ini tidak perlu mengulang teori arsitektur dari BAB 2. Fokusnya adalah im
 
 Checklist 4.4.1:
 
-- [ ] Membuat tabel spesifikasi U-Net dan ProCANet.
-- [ ] Membuat diagram U-Net aktual.
-- [ ] Membuat diagram ProCANet aktual.
-- [ ] Membuat tabel verifikasi forward pass.
-- [ ] Menjelaskan output logit dan threshold inferensi.
-- [ ] Menjelaskan perbedaan U-Net sebagai fusi langsung dan ProCANet sebagai fusi selektif berbasis attention.
+- [x] Membuat tabel spesifikasi U-Net dan ProCANet.
+- [x] Membuat diagram U-Net aktual.
+- [x] Membuat diagram ProCANet aktual.
+- [x] Membuat tabel verifikasi forward pass.
+- [x] Menjelaskan output logit dan threshold inferensi.
+- [x] Menjelaskan perbedaan U-Net sebagai fusi langsung dan ProCANet sebagai fusi selektif berbasis attention.
 
 Berkas yang bisa dirujuk:
 
@@ -297,12 +297,12 @@ Tujuan subbab ini adalah menunjukkan bahwa konfigurasi model dipilih berdasarkan
 
 Checklist 4.4.2:
 
-- [ ] Membuat tabel grid search U-Net.
-- [ ] Membuat tabel grid search ProCANet.
-- [ ] Menandai konfigurasi terbaik masing-masing model.
-- [ ] Membahas efek learning rate.
-- [ ] Membahas efek weight decay.
-- [ ] Menjelaskan keterbatasan ruang grid search.
+- [x] Membuat tabel grid search U-Net.
+- [x] Membuat tabel grid search ProCANet.
+- [x] Menandai konfigurasi terbaik masing-masing model.
+- [x] Membahas efek learning rate.
+- [x] Membahas efek weight decay.
+- [x] Menjelaskan keterbatasan ruang grid search.
 
 Contoh format tabel:
 
@@ -332,13 +332,13 @@ Tujuan subbab ini adalah menunjukkan apakah model belajar secara stabil selama t
 
 Checklist 4.4.3:
 
-- [ ] Membuat grafik loss training vs validation.
-- [ ] Membuat grafik IoU training vs validation.
-- [ ] Membuat grafik Dice training vs validation.
-- [ ] Menjelaskan best checkpoint berbasis validation IoU.
-- [ ] Menjelaskan early stopping berbasis validation IoU.
-- [ ] Menjelaskan scheduler ReduceLROnPlateau.
-- [ ] Menafsirkan grafik, bukan hanya menampilkan grafik.
+- [x] Membuat grafik loss training vs validation.
+- [x] Membuat grafik IoU training vs validation.
+- [x] Membuat grafik Dice training vs validation.
+- [x] Menjelaskan best checkpoint berbasis validation IoU.
+- [x] Menjelaskan early stopping berbasis validation IoU.
+- [x] Menjelaskan scheduler ReduceLROnPlateau.
+- [x] Menafsirkan grafik, bukan hanya menampilkan grafik.
 
 Berkas yang bisa dipakai:
 
@@ -367,12 +367,12 @@ Tujuan subbab ini adalah menyajikan hasil kuantitatif utama dan menjawab model m
 
 Checklist 4.5:
 
-- [ ] Membuat tabel metrik final U-Net vs ProCANet.
-- [ ] Membuat tabel confusion matrix piksel.
-- [ ] Menambahkan precision dan recall jika memungkinkan.
-- [ ] Membahas IoU dan Dice sebagai metrik utama.
-- [ ] Membahas akurasi sebagai metrik pelengkap.
-- [ ] Membahas FP dan FN sebagai karakter kesalahan model.
+- [x] Membuat tabel metrik final U-Net vs ProCANet.
+- [x] Membuat tabel confusion matrix piksel.
+- [x] Menambahkan precision dan recall jika memungkinkan.
+- [x] Membahas IoU dan Dice sebagai metrik utama.
+- [x] Membahas akurasi sebagai metrik pelengkap.
+- [x] Membahas FP dan FN sebagai karakter kesalahan model.
 
 Contoh format tabel:
 
@@ -411,12 +411,12 @@ Tujuan subbab ini adalah memperlihatkan bagaimana prediksi model bekerja di peta
 
 Checklist 4.6:
 
-- [ ] Membuat panel visual input-label-prediksi.
-- [ ] Membuat error map TP/FP/FN/TN jika memungkinkan.
-- [ ] Menjelaskan area yang benar diprediksi kedua model.
-- [ ] Menjelaskan area FP.
-- [ ] Menjelaskan area FN.
-- [ ] Membandingkan kecenderungan spasial U-Net dan ProCANet.
+- [x] Membuat panel visual input-label-prediksi.
+- [x] Membuat error map TP/FP/FN/TN jika memungkinkan.
+- [x] Menjelaskan area yang benar diprediksi kedua model.
+- [x] Menjelaskan area FP.
+- [x] Menjelaskan area FN.
+- [x] Membandingkan kecenderungan spasial U-Net dan ProCANet.
 
 Contoh format gambar:
 
@@ -462,12 +462,12 @@ Tujuan subbab ini adalah menjawab kontribusi utama penelitian: apakah Progressiv
 
 Checklist 4.7:
 
-- [ ] Membandingkan U-Net dan ProCANet berdasarkan IoU, Dice, accuracy, FP, FN.
-- [ ] Menjelaskan kelebihan U-Net sebagai baseline fusi langsung.
-- [ ] Menjelaskan kelebihan ProCANet sebagai fusi attention.
-- [ ] Menjelaskan kelemahan masing-masing model.
-- [ ] Menghubungkan hasil dengan literatur ProCANet/Feliren et al.
-- [ ] Menghindari klaim “ProCANet pasti lebih baik” jika angka tidak mendukung.
+- [x] Membandingkan U-Net dan ProCANet berdasarkan IoU, Dice, accuracy, FP, FN.
+- [x] Menjelaskan kelebihan U-Net sebagai baseline fusi langsung.
+- [x] Menjelaskan kelebihan ProCANet sebagai fusi attention.
+- [x] Menjelaskan kelemahan masing-masing model.
+- [x] Menghubungkan hasil dengan literatur ProCANet/Feliren et al.
+- [x] Menghindari klaim “ProCANet pasti lebih baik” jika angka tidak mendukung.
 
 Contoh format tabel:
 
@@ -505,13 +505,13 @@ Tujuan subbab ini adalah membuat pembahasan lebih kuat secara ilmiah karena memb
 
 Checklist 4.8:
 
-- [ ] Membuat tabel wilayah dengan S2 valid rendah/kosong.
-- [ ] Membuat studi kasus visual wilayah ekstrem.
-- [ ] Membahas peran SAR ketika HSV tidak valid.
-- [ ] Membahas peran Slope/HAND pada radar shadow atau lereng curam.
-- [ ] Membahas potensi bias badan air permanen.
-- [ ] Membahas keterbatasan UNOSAT sebagai proxy label.
-- [ ] Membahas keterbatasan generalisasi model.
+- [x] Membuat tabel wilayah dengan S2 valid rendah/kosong.
+- [x] Membuat studi kasus visual wilayah ekstrem.
+- [x] Membahas peran SAR ketika HSV tidak valid.
+- [x] Membahas peran Slope/HAND pada radar shadow atau lereng curam.
+- [x] Membahas potensi bias badan air permanen.
+- [x] Membahas keterbatasan UNOSAT sebagai proxy label.
+- [x] Membahas keterbatasan generalisasi model.
 
 Contoh format tabel:
 
@@ -609,4 +609,3 @@ Bagian ini adalah checklist praktis supaya BAB 4 tidak terasa kosong.
 5. Visual hasil segmentasi harus ditafsirkan: area mana yang benar, area mana yang FP, area mana yang FN, dan apa kemungkinan penyebabnya.
 6. Pembahasan literatur tidak perlu mengulang teori panjang. Cukup gunakan penelitian terdahulu untuk menjelaskan apakah hasilmu memperkuat, berbeda, atau memperluas temuan sebelumnya.
 7. Keterbatasan harus ditulis eksplisit: UNOSAT adalah proxy label, bukan label lapangan pixel-perfect; Sentinel-2 dapat kosong; waktu akuisisi citra dan label mungkin tidak identik; generalisasi masih terbatas pada wilayah studi.
-
