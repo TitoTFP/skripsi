@@ -1,3 +1,15 @@
-model,source_class,input_contract,encoder_depth,base_channels,encoder_channels,bottleneck_channels,decoder,attention,normalization,activation,output_channels,final_epochs,final_lr,final_weight_decay,checkpoint_size_mb
-U-Net,UNet,7-channel tensor,4,32,32-64-128-256,512,transpose convolution + skip concatenation,none,GroupNorm,ReLU,1,21,5e-05,0.0001,88.92
-ProCANet,ProCANet,"encoder1=7-channel, encoder2=2-channel auxiliary",4,32,32-64-128-256,512,transpose convolution + skip concatenation,progressive self/cross attention pada skip dan bottleneck,GroupNorm,ReLU,1,18,0.0001,0.0001,286.84
+komponen,u_net,procanet
+Jenis model,Single encoder-decoder,Dual encoder single decoder dengan Progressive Cross-Attention
+Input utama,"7 channel: VV, VH, Hue, Saturation, Value, Slope, HAND","Encoder 1: 7 channel penuh; Encoder 2: VV, VH"
+Output akhir,1 channel logit,1 channel logit
+Base channels,32,32
+Kedalaman encoder,4 level,4 level pada masing-masing encoder
+Channel encoder,"32, 64, 128, 256","32, 64, 128, 256 pada kedua encoder"
+Bottleneck,ConvBlock 256 -> 512,"ConvBlock 256 -> 512 pada tiap encoder, lalu PCAB bottleneck"
+Blok konvolusi,"Conv2d 3x3 + GroupNorm + ReLU, dua kali","Conv2d 3x3 + GroupNorm + ReLU, dua kali"
+Downsampling,MaxPool2d 2x2 pada setiap level encoder,MaxPool2d 2x2 pada kedua encoder
+Upsampling/decoder,ConvTranspose2d 2x2 + ConvBlock,ConvTranspose2d 2x2 + ConvBlock memakai fused skips
+Mekanisme fusi,Fusi langsung 7-channel sejak input dan skip connection encoder-decoder,ProgressiveCrossAttentionBlock pada skip features dan bottleneck
+Checkpoint evaluasi,runs/unet/fold_0/grid_lr_5e-5_wd_1e-4/best.pt,runs/procanet/fold_0/grid_lr_1e-4_wd_1e-4/best.pt
+Learning rate checkpoint,5e-05,0.0001
+Batch size / gradient accumulation,8 / 2,16 / 1

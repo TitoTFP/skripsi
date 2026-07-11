@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 from pathlib import Path
 import shutil
 
@@ -24,6 +25,7 @@ class Bab4Config:
     legacy_output_root: Path
     dataset_root: Path
     runs_root: Path
+    evaluation_run: str = "cv_best_checkpoint_eval"
     threshold: float = 0.5
     test_region: str = "Aceh_Utara"
     offline: bool = True
@@ -68,6 +70,29 @@ class Bab4Config:
     @property
     def narratives_dir(self) -> Path:
         return self.output_root / "narratives"
+
+    @property
+    def evaluation_root(self) -> Path:
+        return self.runs_root / self.evaluation_run
+
+    @property
+    def evaluation_source(self) -> str:
+        return f"runs/{self.evaluation_run}/{{unet,procanet}}/eval_test"
+
+    def evaluation_dir(self, model: str) -> Path:
+        return self.evaluation_root / model / "eval_test"
+
+    def selected_training_run(self, model: str) -> Path:
+        metadata_path = self.evaluation_dir(model) / "metrics.json"
+        with metadata_path.open(encoding="utf-8") as handle:
+            metadata = json.load(handle)
+        checkpoint = metadata.get("checkpoint")
+        if not checkpoint:
+            raise ValueError(f"checkpoint tidak ditemukan dalam {metadata_path}")
+        checkpoint_path = Path(str(checkpoint))
+        if not checkpoint_path.is_absolute():
+            checkpoint_path = self.root / checkpoint_path
+        return checkpoint_path.resolve().parent
 
     def output_dir_for_kind(self, kind: str) -> Path:
         if kind == "table":

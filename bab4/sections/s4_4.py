@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import json
 import re
 from collections import defaultdict
 
@@ -25,12 +26,13 @@ def generate_4_4(config):
 
 
 def generate_4_4_1(config):
+    selected_source = _selected_training_source(config, "config.json")
     artifacts = [
         write_table(
             config,
             _spec("Tabel 4.10"),
             _model_spec_rows(config),
-            source="training/models/unet.py;training/models/procanet.py;training/models/blocks.py;runs/final/*/config.json",
+            source=f"training/models/unet.py;training/models/procanet.py;training/models/blocks.py;{selected_source}",
         ),
         write_table(
             config,
@@ -80,7 +82,8 @@ def generate_4_4_2(config):
 
 
 def generate_4_4_3(config):
-    metric_paths = [config.runs_root / "final" / model / "metrics.csv" for model in MODEL_KEYS]
+    metric_paths = [config.selected_training_run(model) / "metrics.csv" for model in MODEL_KEYS]
+    selected_source = _selected_training_source(config, "metrics.csv")
     if not all(path.exists() for path in metric_paths):
         return section_result(
             "4.4.3",
@@ -88,8 +91,8 @@ def generate_4_4_3(config):
                 missing_result(
                     config,
                     _spec("Gambar 4.11"),
-                    source="runs/final/{unet,procanet}/metrics.csv",
-                    note="final training metrics.csv tidak lengkap",
+                    source=selected_source,
+                    note="metrics.csv checkpoint terbaik spatial CV tidak lengkap",
                 ),
                 _narrative_4_4_3(config),
             ],
@@ -102,7 +105,11 @@ def generate_4_4_3(config):
 
 
 def _model_spec_rows(config) -> list[dict[str, object]]:
-    return [
+    configs = {}
+    for model in MODEL_KEYS:
+        with (config.selected_training_run(model) / "config.json").open(encoding="utf-8") as handle:
+            configs[model] = json.load(handle)
+    rows = [
         {
             "komponen": "Jenis model",
             "u_net": "Single encoder-decoder",
@@ -143,6 +150,26 @@ def _model_spec_rows(config) -> list[dict[str, object]]:
             "procanet": "ProgressiveCrossAttentionBlock pada skip features dan bottleneck",
         },
     ]
+    rows.extend(
+        [
+            {
+                "komponen": "Checkpoint evaluasi",
+                "u_net": str(config.selected_training_run("unet").relative_to(config.root) / "best.pt"),
+                "procanet": str(config.selected_training_run("procanet").relative_to(config.root) / "best.pt"),
+            },
+            {
+                "komponen": "Learning rate checkpoint",
+                "u_net": configs["unet"].get("lr"),
+                "procanet": configs["procanet"].get("lr"),
+            },
+            {
+                "komponen": "Batch size / gradient accumulation",
+                "u_net": f"{configs['unet'].get('batch_size')} / {configs['unet'].get('gradient_accumulation_steps')}",
+                "procanet": f"{configs['procanet'].get('batch_size')} / {configs['procanet'].get('gradient_accumulation_steps')}",
+            },
+        ]
+    )
+    return rows
 
 
 def _forward_contract_rows(config) -> list[dict[str, object]]:
@@ -355,7 +382,7 @@ def _hyperparameter_figure(config, rows: list[dict[str, object]]):
 
 def _training_curves_figure(config):
     spec = _spec("Gambar 4.11")
-    metrics = {model: read_csv_rows(config.runs_root / "final" / model / "metrics.csv") for model in MODEL_KEYS}
+    metrics = {model: read_csv_rows(config.selected_training_run(model) / "metrics.csv") for model in MODEL_KEYS}
     setup_style()
     fig, axes = plt.subplots(2, 2, figsize=(10.5, 7.0))
     panels = [
@@ -388,7 +415,7 @@ def _training_curves_figure(config):
     ax_lr.legend(loc="upper right", fontsize=7)
     path = config.figures_dir / spec.filename
     savefig(fig, path)
-    return figure_result(config, spec, path, source="runs/final/{unet,procanet}/metrics.csv")
+    return figure_result(config, spec, path, source=_selected_training_source(config, "metrics.csv"))
 
 
 def _draw_linear_blocks(ax, labels: list[str], *, color: str) -> None:
@@ -418,7 +445,7 @@ def _arrow(ax, x0: float, y0: float, x1: float, y1: float) -> None:
 
 def _narrative_4_4_1(config):
     spec = _spec("Narasi 4.4.1")
-    text = """
+    text = f"""
     Spesifikasi arsitektur dibuat ulang dari source model di `training/models`.
     U-Net menggunakan satu encoder 7-channel, bottleneck, dan decoder dengan skip connection.
     ProCANet mempertahankan encoder utama 7-channel dan encoder auxiliary 2-channel,
@@ -448,12 +475,21 @@ def _narrative_4_4_2(config, rows: list[dict[str, object]]):
 
 def _narrative_4_4_3(config):
     spec = _spec("Narasi 4.4.3")
-    text = """
-    Kurva stabilitas training dibuat dari `runs/final/*/metrics.csv`, yaitu log final model
-    yang dipakai untuk evaluasi BAB 4. Generator tidak menjalankan training ulang; ia hanya
-    membaca loss, IoU, dan Dice per epoch dari artefak final yang sudah tersedia.
+    text = f"""
+    Kurva stabilitas training dibuat dari `metrics.csv` milik checkpoint terbaik spatial CV
+    yang tercatat pada metadata evaluasi `{config.evaluation_run}`. U-Net menggunakan fold 0
+    dengan lr=5e-5 dan wd=1e-4, sedangkan ProCANet menggunakan fold 0 dengan lr=1e-4 dan
+    wd=1e-4. Generator tidak menjalankan training ulang; ia hanya membaca loss, IoU, Dice,
+    dan learning rate per epoch dari run checkpoint yang dipakai untuk evaluasi Aceh Utara.
     """
-    return write_text_artifact(config, spec, text, source="runs/final/{unet,procanet}/metrics.csv")
+    return write_text_artifact(config, spec, text, source=_selected_training_source(config, "metrics.csv"))
+
+
+def _selected_training_source(config, filename: str) -> str:
+    return ";".join(
+        str((config.selected_training_run(model) / filename).relative_to(config.root))
+        for model in MODEL_KEYS
+    )
 
 
 def _mean(values: list[float]) -> float:

@@ -1,4 +1,4 @@
-case_id,case_label,region,tile,valid_pixels,flood_pixels,water_river_pixels,s2_valid_pixels,flood_pct_of_valid,water_river_pct_of_valid,s2_valid_pct_of_valid,vv_mean_valid,vh_mean_valid,slope_mean_valid,hand_mean_valid,selection_rule,source_file
-hsv_zero,Sentinel-2 kosong/hampir kosong,Aceh_Tamiang,Aceh_Tamiang_r001024_c003840,262144,147368,147368,0,56.2164,56.2164,0.0,0.3996,0.2183,0.0556,0.5239,prioritaskan tile Aceh_Tamiang dengan s2_valid_mask minimum,/home/nozomi/Productive/skripsi/dataset/tiles/7ch/by_region/Aceh_Tamiang/Aceh_Tamiang_r001024_c003840.npz
-topography,topografi/radar shadow,Aceh_Tamiang,Aceh_Tamiang_r006501_c002304,217448,0,0,0,0.0,0.0,0.0,0.6943,0.487,0.7187,0.8691,prioritaskan tile Aceh_Tamiang ekstrem topografi,/home/nozomi/Productive/skripsi/dataset/tiles/7ch/by_region/Aceh_Tamiang/Aceh_Tamiang_r006501_c002304.npz
-permanent_water,badan air permanen,Aceh_Utara,Aceh_Utara_r001280_c005632,262144,247132,208682,251356,94.2734,79.6059,95.8847,0.2327,0.1158,0.0271,0.4439,pilih tile Aceh_Utara dengan water_river_mask maksimum,/home/nozomi/Productive/skripsi/dataset/tiles/7ch/by_region/Aceh_Utara/Aceh_Utara_r001280_c005632.npz
+kasus,tile,piksel_valid,flood_pct_of_valid,s2_valid_pct_of_valid,water_river_pct_of_valid,dark_vv_pct_of_valid,slope_mean_valid,hand_mean_valid
+Sentinel-2 kosong/hampir kosong,Aceh_Tamiang_r001024_c003840,262144,56.2164,0.0,56.2164,20.0001,0.0556,0.5239
+topografi/radar shadow,Aceh_Tamiang_r006501_c002304,217448,0.0,0.0,0.0,20.0002,0.7187,0.8691
+badan air permanen,Aceh_Utara_r001280_c005632,262144,94.2734,95.8847,79.6059,20.0001,0.0271,0.4439

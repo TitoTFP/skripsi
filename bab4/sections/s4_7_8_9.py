@@ -38,18 +38,19 @@ def generate_4_7_8_9(config):
 
 def generate_4_7(config):
     effectiveness_rows = _effectiveness_rows(config)
+    metrics_source = f"{config.evaluation_source}/metrics.csv"
     artifacts = [
         write_table(
             config,
             _spec("Tambahan 4.7"),
             effectiveness_rows,
-            source="runs/final/{unet,procanet}/eval_test/metrics.csv;training/models/{unet,procanet}.py",
+            source=f"{metrics_source};training/models/{{unet,procanet}}.py",
         ),
         write_table(
             config,
             _spec("Tambahan 4.7b"),
             _literature_context_rows(effectiveness_rows),
-            source="runs/final/{unet,procanet}/eval_test/metrics.csv;training/models/{unet,procanet}.py",
+            source=f"{metrics_source};training/models/{{unet,procanet}}.py",
         ),
         _narrative_4_7(config, effectiveness_rows),
     ]
@@ -78,7 +79,7 @@ def generate_4_9(config):
             config,
             _spec("Tambahan 4.9"),
             rows,
-            source="dataset/preprocessing_summary.csv;runs/final/{unet,procanet}/eval_test/metrics.csv;bab4 generator functions",
+            source=f"dataset/preprocessing_summary.csv;{config.evaluation_source}/metrics.csv;bab4 generator functions",
         ),
     ]
     return section_result("4.9", artifacts)
@@ -127,12 +128,12 @@ def _literature_context_rows(effectiveness_rows: list[dict[str, object]]) -> lis
             "comparison_axis": "attention fusion",
             "reference_context": "ProCANet dual encoder dengan progressive cross-attention",
             "bab4_evidence": f"IoU={procanet.get('iou', '')}, Dice={procanet.get('dice', '')}",
-            "interpretation": "attention fusion menekan FP tetapi pada hasil final recall lebih rendah",
+            "interpretation": "attention fusion menekan FP dan meningkatkan metrik agregat; recall U-Net hanya sedikit lebih tinggi",
         },
         {
             "comparison_axis": "operational trade-off",
             "reference_context": "validasi wilayah held-out Aceh_Utara",
-            "bab4_evidence": "precision/recall dihitung dari confusion matrix final",
+            "bab4_evidence": "precision/recall dihitung dari confusion matrix checkpoint terbaik spatial CV",
             "interpretation": "pilihan model perlu mempertimbangkan biaya FP dan FN, bukan hanya akurasi",
         },
     ]
@@ -321,7 +322,7 @@ def _panels_for_extreme_case(config, artifact_id: str, tile_path: Path, x: np.nd
 
 
 def _load_prediction_for_tile(config, model: str, tile_path: Path) -> np.ndarray:
-    prediction_path = config.runs_root / "final" / model / "eval_test" / "predictions" / _region_from_tile(tile_path) / tile_path.name
+    prediction_path = config.evaluation_dir(model) / "predictions" / _region_from_tile(tile_path) / tile_path.name
     if prediction_path.exists():
         return np.squeeze(_load_npz(prediction_path).get("prediction", np.zeros((1, 512, 512), dtype=np.uint8)))
     return np.zeros((512, 512), dtype=np.uint8)
@@ -347,8 +348,8 @@ def _findings_rows(config) -> list[dict[str, object]]:
         },
         {
             "finding_id": "F3",
-            "topic": "model final",
-            "evidence": f"model terbaik berdasarkan IoU final: {best_model.get('model', '')} ({best_model.get('iou', '')})",
+            "topic": "checkpoint terbaik spatial CV",
+            "evidence": f"model terbaik berdasarkan IoU wilayah uji: {best_model.get('model', '')} ({best_model.get('iou', '')})",
             "implication": "pembahasan kinerja harus melihat IoU/Dice serta precision/recall",
         },
         {
@@ -365,14 +366,15 @@ def _narrative_4_7(config, rows: list[dict[str, object]]):
     if len(rows) >= 2:
         leader = max(rows, key=lambda row: float(row["iou"]))
         text = f"""
-        Pembahasan efektivitas model diturunkan dari metrik final dan source arsitektur.
+        Pembahasan efektivitas model diturunkan dari metrik checkpoint terbaik spatial CV dan source arsitektur.
         Pada region uji {config.test_region}, {leader['model']} memiliki IoU tertinggi yaitu
-        {leader['iou']}. Perbandingan tetap mempertimbangkan precision, recall, FP, dan FN
-        karena kebutuhan operasional segmentasi banjir tidak selalu identik dengan akurasi global.
+        {leader['iou']}. ProCANet unggul pada loss, IoU, Dice, akurasi, precision, dan specificity,
+        sedangkan U-Net unggul tipis pada recall dan memiliki FN lebih rendah. Perbandingan tetap
+        mempertimbangkan FP dan FN karena kebutuhan operasional tidak selalu identik dengan akurasi global.
         """
     else:
-        text = "Pembahasan efektivitas model belum lengkap karena metrics final tidak ditemukan."
-    return write_text_artifact(config, spec, text, source="runs/final/{unet,procanet}/eval_test/metrics.csv;training/models")
+        text = "Pembahasan efektivitas model belum lengkap karena metrics checkpoint terbaik spatial CV tidak ditemukan."
+    return write_text_artifact(config, spec, text, source=f"{config.evaluation_source}/metrics.csv;training/models")
 
 
 def _narrative_4_8(config, rows: list[dict[str, object]]):
@@ -390,7 +392,7 @@ def _narrative_4_8(config, rows: list[dict[str, object]]):
 def _final_metric_rows(config) -> list[dict[str, object]]:
     rows = []
     for model in MODEL_KEYS:
-        metrics_path = config.runs_root / "final" / model / "eval_test" / "metrics.csv"
+        metrics_path = config.evaluation_dir(model) / "metrics.csv"
         if not metrics_path.exists():
             continue
         raw_rows = read_csv_rows(metrics_path)

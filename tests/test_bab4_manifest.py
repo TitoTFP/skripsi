@@ -35,6 +35,19 @@ class Bab4ManifestTests(unittest.TestCase):
         self.assertIn("masked_band_stats", text)
         self.assertIn("feature_valid_mask.tif", text)
 
+    def test_sections_4_4_through_4_9_do_not_hardcode_final_run(self):
+        root = Path(__file__).parents[1]
+        target_files = [
+            root / "bab4" / "sections" / "s4_4.py",
+            root / "bab4" / "sections" / "s4_5_6.py",
+            root / "bab4" / "sections" / "s4_7_8_9.py",
+        ]
+
+        for path in target_files:
+            text = path.read_text(encoding="utf-8")
+            self.assertNotIn("runs/final", text, msg=str(path))
+            self.assertNotIn('runs_root / "final"', text, msg=str(path))
+
 
 if __name__ == "__main__":
     unittest.main()

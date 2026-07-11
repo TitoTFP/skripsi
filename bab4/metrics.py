@@ -4,8 +4,8 @@ import csv
 from pathlib import Path
 
 
-def load_final_metrics(runs_root: Path, model: str, region: str | None = None) -> dict[str, object]:
-    path = runs_root / "final" / model / "eval_test" / "metrics.csv"
+def load_evaluation_metrics(evaluation_root: Path, model: str, region: str | None = None) -> dict[str, object]:
+    path = evaluation_root / model / "eval_test" / "metrics.csv"
     with path.open(newline="", encoding="utf-8") as handle:
         rows = list(csv.DictReader(handle))
     if region is None:
@@ -18,3 +18,8 @@ def load_final_metrics(runs_root: Path, model: str, region: str | None = None) -
     precision = tp / (tp + fp) if tp + fp else 0.0
     recall = tp / (tp + fn) if tp + fn else 0.0
     return {**metrics, "model": model, "precision": precision, "recall": recall}
+
+
+def load_final_metrics(runs_root: Path, model: str, region: str | None = None) -> dict[str, object]:
+    """Backward-compatible loader for legacy callers."""
+    return load_evaluation_metrics(runs_root / "final", model, region)

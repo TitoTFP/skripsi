@@ -1,23 +1,12 @@
-region,channel,min,max,mean,std,valid_pct,source
-Aceh_Besar,Slope,0.0,1.0,0.1101,0.2001,35.9132,dataset/features_preprocessed/Aceh_Besar/slope_norm.tif
-Aceh_Besar,HAND,0.0,1.0,0.2171,0.3671,35.9132,dataset/features_preprocessed/Aceh_Besar/hand_norm.tif
-Aceh_Tamiang,Slope,0.0,1.0,0.1152,0.1974,49.6807,dataset/features_preprocessed/Aceh_Tamiang/slope_norm.tif
-Aceh_Tamiang,HAND,0.0,1.0,0.2624,0.3659,49.6807,dataset/features_preprocessed/Aceh_Tamiang/hand_norm.tif
-Aceh_Timur,Slope,0.0,1.0,0.1241,0.1948,52.2497,dataset/features_preprocessed/Aceh_Timur/slope_norm.tif
-Aceh_Timur,HAND,0.0,1.0,0.2876,0.3835,52.2497,dataset/features_preprocessed/Aceh_Timur/hand_norm.tif
-Aceh_Utara,Slope,0.0,1.0,0.0835,0.1339,56.3729,dataset/features_preprocessed/Aceh_Utara/slope_norm.tif
-Aceh_Utara,HAND,0.0,1.0,0.2623,0.3511,56.3729,dataset/features_preprocessed/Aceh_Utara/hand_norm.tif
-Agam,Slope,0.0,1.0,0.1645,0.2559,51.5946,dataset/features_preprocessed/Agam/slope_norm.tif
-Agam,HAND,0.0,1.0,0.3077,0.3994,51.5946,dataset/features_preprocessed/Agam/hand_norm.tif
-Banda_Aceh,Slope,0.0,0.6939,0.0211,0.0408,42.0761,dataset/features_preprocessed/Banda_Aceh/slope_norm.tif
-Banda_Aceh,HAND,0.0,0.5448,0.0268,0.0464,42.0761,dataset/features_preprocessed/Banda_Aceh/hand_norm.tif
-Bireuen,Slope,0.0,1.0,0.1552,0.1969,62.6938,dataset/features_preprocessed/Bireuen/slope_norm.tif
-Bireuen,HAND,0.0,1.0,0.3714,0.4113,62.6938,dataset/features_preprocessed/Bireuen/hand_norm.tif
-Langsa,Slope,0.0,0.8662,0.0369,0.0729,52.0175,dataset/features_preprocessed/Langsa/slope_norm.tif
-Langsa,HAND,0.0,1.0,0.0753,0.1487,52.0175,dataset/features_preprocessed/Langsa/hand_norm.tif
-Pasaman_Barat,Slope,0.0,1.0,0.1034,0.1886,47.087,dataset/features_preprocessed/Pasaman_Barat/slope_norm.tif
-Pasaman_Barat,HAND,0.0,1.0,0.2393,0.3535,47.087,dataset/features_preprocessed/Pasaman_Barat/hand_norm.tif
-Pidie,Slope,0.0,1.0,0.1281,0.2106,38.3262,dataset/features_preprocessed/Pidie/slope_norm.tif
-Pidie,HAND,0.0,1.0,0.2616,0.4018,38.3262,dataset/features_preprocessed/Pidie/hand_norm.tif
-Pidie_Jaya,Slope,0.0,1.0,0.1929,0.2403,56.4286,dataset/features_preprocessed/Pidie_Jaya/slope_norm.tif
-Pidie_Jaya,HAND,0.0,1.0,0.3768,0.4334,56.4286,dataset/features_preprocessed/Pidie_Jaya/hand_norm.tif
+wilayah,mean_slope,std_slope,mean_hand,std_hand,piksel_valid_pct
+Aceh Besar,0.299,0.2274,0.6046,0.3753,35.9132
+Aceh Tamiang,0.23,0.2268,0.5282,0.3593,49.6807
+Aceh Timur,0.2357,0.2138,0.5505,0.3699,52.2497
+Aceh Utara,0.1456,0.1487,0.4652,0.3525,56.3729
+Agam,0.3155,0.2792,0.5963,0.3703,51.5946
+Banda Aceh,0.0455,0.0487,0.0637,0.0525,42.0761
+Bireuen,0.2458,0.1978,0.5923,0.3728,62.6938
+Langsa,0.0678,0.0869,0.1448,0.1802,52.0175
+Pasaman Barat,0.2176,0.2236,0.5083,0.3587,47.087
+Pidie,0.332,0.2176,0.6826,0.3659,38.3262
+Pidie Jaya,0.3366,0.2279,0.6677,0.3723,56.4286

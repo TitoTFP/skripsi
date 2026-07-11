@@ -1,12 +1,12 @@
-region,reference,raster_size,resolution,crs_match,geotransform_match,layers_checked,status
-Aceh_Besar,Sentinel-1 VV,8175 x 9662,10.00 m,True,True,8,Selaras
-Aceh_Tamiang,Sentinel-1 VV,7013 x 6210,10.00 m,True,True,8,Selaras
-Aceh_Timur,Sentinel-1 VV,12096 x 8470,10.00 m,True,True,8,Selaras
-Aceh_Utara,Sentinel-1 VV,5824 x 8101,10.00 m,True,True,8,Selaras
-Agam,Sentinel-1 VV,4961 x 8606,10.00 m,True,True,8,Selaras
-Banda_Aceh,Sentinel-1 VV,1058 x 1166,10.00 m,True,True,8,Selaras
-Bireuen,Sentinel-1 VV,4275 x 6653,10.00 m,True,True,8,Selaras
-Langsa,Sentinel-1 VV,1727 x 2407,10.00 m,True,True,8,Selaras
-Pasaman_Barat,Sentinel-1 VV,8117 x 9995,10.00 m,True,True,8,Selaras
-Pidie,Sentinel-1 VV,9918 x 8311,10.00 m,True,True,8,Selaras
-Pidie_Jaya,Sentinel-1 VV,4303 x 3820,10.00 m,True,True,8,Selaras
+wilayah,ukuran_raster,resolusi_piksel,crs_proyeksi,status
+Aceh Besar,8175 x 9662,10 x 10,EPSG:32646,Selaras
+Aceh Tamiang,7013 x 6210,10 x 10,EPSG:32647,Selaras
+Aceh Timur,12096 x 8470,10 x 10,EPSG:32647,Selaras
+Aceh Utara,5824 x 8101,10 x 10,EPSG:32647,Selaras
+Agam,4961 x 8606,10 x 10,EPSG:32747,Selaras
+Banda Aceh,1058 x 1166,10 x 10,EPSG:32646,Selaras
+Bireuen,4275 x 6653,10 x 10,EPSG:32647,Selaras
+Langsa,1727 x 2407,10 x 10,EPSG:32647,Selaras
+Pasaman Barat,8117 x 9995,10 x 10,EPSG:32647,Selaras
+Pidie,9918 x 8311,10 x 10,EPSG:32647,Selaras
+Pidie Jaya,4303 x 3820,10 x 10,EPSG:32647,Selaras

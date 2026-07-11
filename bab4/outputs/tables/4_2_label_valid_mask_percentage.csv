@@ -1,12 +1,12 @@
-region,valid_pixels,flood_pixels,flood_pct_of_valid,non_flood_pixels,non_flood_pct_of_valid,water_river_pixels,water_river_pct_of_valid,interpretation
-Aceh_Besar,106956513,5429056,5.0759,101527457,94.9241,3158036,2.9526,banjir moderat
-Aceh_Tamiang,82307919,4578520,5.5627,77729399,94.4373,6063139,7.3664,banjir moderat
-Aceh_Timur,206802875,26605176,12.865,180197699,87.135,19840072,9.5937,banjir moderat
-Aceh_Utara,102158650,22122708,21.6552,80035942,78.3448,15287896,14.9649,banjir relatif dominan
-Agam,54576695,1257081,2.3033,53319614,97.6967,0,0.0,banjir minoritas kuat
-Banda_Aceh,2532433,326952,12.9106,2205481,87.0894,214485,8.4695,banjir moderat
-Bireuen,67149979,3827030,5.6992,63322949,94.3008,2543747,3.7882,banjir moderat
-Langsa,7395290,933776,12.6266,6461514,87.3734,1289133,17.4318,banjir moderat
-Pasaman_Barat,115359798,1462154,1.2675,113897644,98.7325,0,0.0,banjir minoritas kuat
-Pidie,110864777,9351866,8.4354,101512911,91.5646,4606256,4.1548,banjir moderat
-Pidie_Jaya,34130353,2099420,6.1512,32030933,93.8488,1301551,3.8135,banjir moderat
+wilayah,banjir_dalam_valid_pct,water_river_dalam_valid_pct,rasio_non_banjir
+Aceh Besar,4.6,2.4,20.5
+Aceh Tamiang,4.3,5.4,22.4
+Aceh Timur,5.7,4.6,16.6
+Aceh Utara,18.4,12.6,4.4
+Agam,1.9,0.0,50.7
+Banda Aceh,6.1,3.0,15.5
+Bireuen,5.6,3.6,17.0
+Langsa,6.4,10.0,14.7
+Pasaman Barat,1.1,0.0,87.4
+Pidie,5.9,2.7,16.0
+Pidie Jaya,5.1,3.2,18.7

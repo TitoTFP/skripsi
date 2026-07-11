@@ -31,6 +31,7 @@ def generate_4_5_6(config):
 
 def generate_4_5(config):
     metric_rows = _metric_rows(config)
+    metrics_source = f"{config.evaluation_source}/metrics.csv"
     if not metric_rows:
         return section_result(
             "4.5",
@@ -38,27 +39,27 @@ def generate_4_5(config):
                 missing_result(
                     config,
                     _spec("Tabel 4.13"),
-                    source="runs/final/{unet,procanet}/eval_test/metrics.csv",
-                    note="metrics evaluasi final tidak ditemukan",
+                    source=metrics_source,
+                    note="metrics evaluasi checkpoint terbaik spatial CV tidak ditemukan",
                 ),
                 missing_result(
                     config,
                     _spec("Tabel 4.14"),
-                    source="runs/final/{unet,procanet}/eval_test/metrics.csv",
-                    note="metrics evaluasi final tidak ditemukan",
+                    source=metrics_source,
+                    note="metrics evaluasi checkpoint terbaik spatial CV tidak ditemukan",
                 ),
                 missing_result(
                     config,
                     _spec("Gambar 4.12"),
-                    source="runs/final/{unet,procanet}/eval_test/metrics.csv",
-                    note="metrics evaluasi final tidak ditemukan",
+                    source=metrics_source,
+                    note="metrics evaluasi checkpoint terbaik spatial CV tidak ditemukan",
                 ),
                 _narrative_4_5(config, metric_rows),
             ],
         )
     artifacts = [
-        write_table(config, _spec("Tabel 4.13"), _metric_table_rows(metric_rows), source="runs/final/{unet,procanet}/eval_test/metrics.csv"),
-        write_table(config, _spec("Tabel 4.14"), _confusion_rows(metric_rows), source="runs/final/{unet,procanet}/eval_test/metrics.csv"),
+        write_table(config, _spec("Tabel 4.13"), _metric_table_rows(metric_rows), source=metrics_source),
+        write_table(config, _spec("Tabel 4.14"), _confusion_rows(metric_rows), source=metrics_source),
         _figure_metric_comparison(config, metric_rows),
         _narrative_4_5(config, metric_rows),
     ]
@@ -68,26 +69,27 @@ def generate_4_5(config):
 def generate_4_6(config):
     tile_path = _select_tile(config)
     if tile_path is None:
-        missing_note = "tile test dan/atau prediksi final tidak ditemukan"
+        missing_note = "tile test dan/atau prediksi checkpoint terbaik spatial CV tidak ditemukan"
+        prediction_source = f"dataset/tiles/7ch/by_region/{config.test_region};{config.evaluation_source}/predictions/{config.test_region}"
         return section_result(
             "4.6",
             [
                 missing_result(
                     config,
                     _spec("Tabel 4.15"),
-                    source="dataset/tiles/7ch/by_region/Aceh_Utara;runs/final/*/eval_test/predictions/Aceh_Utara",
+                    source=prediction_source,
                     note=missing_note,
                 ),
                 missing_result(
                     config,
                     _spec("Gambar 4.13"),
-                    source="dataset/tiles/7ch/by_region/Aceh_Utara;runs/final/*/eval_test/predictions/Aceh_Utara",
+                    source=prediction_source,
                     note=missing_note,
                 ),
                 missing_result(
                     config,
                     _spec("Gambar 4.14"),
-                    source="dataset/tiles/7ch/by_region/Aceh_Utara;runs/final/*/eval_test/predictions/Aceh_Utara",
+                    source=prediction_source,
                     note=missing_note,
                 ),
                 _narrative_4_6(config, None),
@@ -100,7 +102,7 @@ def generate_4_6(config):
             config,
             _spec("Tabel 4.15"),
             _error_count_rows(tile_path, tile, predictions),
-            source=f"{tile_path.relative_to(config.root)};runs/final/{{unet,procanet}}/eval_test/predictions/{config.test_region}/{tile_path.name}",
+            source=f"{tile_path.relative_to(config.root)};{config.evaluation_source}/predictions/{config.test_region}/{tile_path.name}",
         ),
         _figure_segmentation_panel(config, tile_path, tile, predictions),
         _figure_error_map(config, tile_path, tile, predictions),
@@ -112,7 +114,7 @@ def generate_4_6(config):
 def _metric_rows(config) -> list[dict[str, object]]:
     rows = []
     for model in MODEL_KEYS:
-        metrics_path = config.runs_root / "final" / model / "eval_test" / "metrics.csv"
+        metrics_path = config.evaluation_dir(model) / "metrics.csv"
         if not metrics_path.exists():
             continue
         raw_rows = read_csv_rows(metrics_path)
@@ -207,12 +209,12 @@ def _figure_metric_comparison(config, rows: list[dict[str, object]]):
     ax.set_ylim(0, 1.05)
     ax.set_ylabel("Nilai")
     ax.set_xlabel("Metrik")
-    ax.set_title(f"Metrik Final pada {config.test_region.replace('_', ' ')}")
-    ax.legend(title="Model")
+    ax.set_title(f"Metrik Checkpoint Terbaik Spatial CV pada {config.test_region.replace('_', ' ')}")
+    ax.legend(title="Model", loc="upper left", bbox_to_anchor=(1.01, 1.0))
     ax.grid(axis="y", alpha=0.25)
     path = config.figures_dir / spec.filename
     savefig(fig, path)
-    return figure_result(config, spec, path, source="runs/final/{unet,procanet}/eval_test/metrics.csv")
+    return figure_result(config, spec, path, source=f"{config.evaluation_source}/metrics.csv")
 
 
 def _select_tile(config) -> Path | None:
@@ -236,7 +238,7 @@ def _select_tile(config) -> Path | None:
 
 
 def _prediction_path(config, model: str, tile_name: str) -> Path:
-    return config.runs_root / "final" / model / "eval_test" / "predictions" / config.test_region / tile_name
+    return config.evaluation_dir(model) / "predictions" / config.test_region / tile_name
 
 
 def _error_count_rows(tile_path: Path, tile: dict[str, np.ndarray], predictions: dict[str, dict[str, np.ndarray]]) -> list[dict[str, object]]:
@@ -294,7 +296,7 @@ def _figure_segmentation_panel(config, tile_path: Path, tile: dict[str, np.ndarr
         config,
         spec,
         path,
-        source=f"{tile_path.relative_to(config.root)};runs/final/{{unet,procanet}}/eval_test/predictions/{config.test_region}/{tile_path.name}",
+        source=f"{tile_path.relative_to(config.root)};{config.evaluation_source}/predictions/{config.test_region}/{tile_path.name}",
     )
 
 
@@ -328,7 +330,7 @@ def _figure_error_map(config, tile_path: Path, tile: dict[str, np.ndarray], pred
         config,
         spec,
         path,
-        source=f"{tile_path.relative_to(config.root)};runs/final/{{unet,procanet}}/eval_test/predictions/{config.test_region}/{tile_path.name}",
+        source=f"{tile_path.relative_to(config.root)};{config.evaluation_source}/predictions/{config.test_region}/{tile_path.name}",
     )
 
 
@@ -340,19 +342,22 @@ def _narrative_4_5(config, rows: list[dict[str, object]]):
     else:
         summary = "Metrik final belum dapat diringkas karena source metrics.csv tidak ditemukan."
     text = f"""
-    Evaluasi akhir dihitung ulang dari `runs/final/*/eval_test/metrics.csv` untuk region
-    {config.test_region}. Precision dan recall diturunkan kembali dari TP, FP, dan FN sehingga
-    tabel metrik dan confusion matrix memiliki sumber numerik yang sama. {summary}
+    Evaluasi wilayah uji dihitung ulang dari `{config.evaluation_run}/*/eval_test/metrics.csv`
+    untuk region {config.test_region}. Checkpoint ini dipilih dari hasil spatial cross-validation.
+    Precision dan recall diturunkan kembali dari TP, FP, dan FN sehingga tabel metrik dan
+    confusion matrix memiliki sumber numerik yang sama. ProCANet unggul pada loss, IoU, Dice,
+    akurasi, precision, dan specificity, sedangkan U-Net unggul tipis pada recall dan memiliki
+    FN lebih rendah. {summary}
     """
-    return write_text_artifact(config, spec, text, source="runs/final/{unet,procanet}/eval_test/metrics.csv")
+    return write_text_artifact(config, spec, text, source=f"{config.evaluation_source}/metrics.csv")
 
 
 def _narrative_4_6(config, tile_path: Path | None):
     spec = _spec("Narasi 4.6")
     tile_text = tile_path.stem if tile_path else TARGET_TILE.removesuffix(".npz")
     text = f"""
-    Analisis visual spasial dibuat dari tile sumber `{tile_text}` dan prediksi final pada
-    `runs/final/*/eval_test/predictions`. Error map dihitung ulang secara piksel sebagai TN,
+    Analisis visual spasial dibuat dari tile sumber `{tile_text}` dan prediksi checkpoint terbaik
+    spatial CV pada `{config.evaluation_run}/*/eval_test/predictions`. Error map dihitung ulang secara piksel sebagai TN,
     TP, FP, dan FN dengan valid mask tile/prediksi, sehingga angka pada Tabel 4.15 berasal
     dari array prediksi, bukan dari artefak gambar lama.
     """
@@ -360,7 +365,7 @@ def _narrative_4_6(config, tile_path: Path | None):
         config,
         spec,
         text,
-        source=f"dataset/tiles/7ch/by_region/{config.test_region};runs/final/{{unet,procanet}}/eval_test/predictions/{config.test_region}",
+        source=f"dataset/tiles/7ch/by_region/{config.test_region};{config.evaluation_source}/predictions/{config.test_region}",
     )
 
 

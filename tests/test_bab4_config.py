@@ -19,6 +19,21 @@ class Bab4ConfigTests(unittest.TestCase):
         self.assertTrue(config.offline)
         self.assertTrue(config.no_retrain)
         self.assertTrue(config.clean_outputs)
+        self.assertEqual(config.evaluation_run, "cv_best_checkpoint_eval")
+        self.assertEqual(config.evaluation_root, root / "runs" / "cv_best_checkpoint_eval")
+
+    def test_selected_training_runs_follow_evaluation_metadata(self):
+        root = resolve_repo_root(Path(__file__).parents[1])
+        config = Bab4Config.from_repo(root)
+
+        self.assertEqual(
+            config.selected_training_run("unet"),
+            root / "runs" / "unet" / "fold_0" / "grid_lr_5e-5_wd_1e-4",
+        )
+        self.assertEqual(
+            config.selected_training_run("procanet"),
+            root / "runs" / "procanet" / "fold_0" / "grid_lr_1e-4_wd_1e-4",
+        )
 
     def test_from_repo_accepts_custom_output_root(self):
         root = resolve_repo_root(Path(__file__).parents[1])
