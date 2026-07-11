@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from bab4.artifacts import ALL_ARTIFACTS
-from bab4.common import REGIONS, fmt_float, read_csv_row_map, region_quality_from_s2_pct, to_float, to_int
+from bab4.common import REGIONS, fmt_float, pct, read_csv_row_map, to_float
 from bab4.plots import normalize_image, savefig, setup_style
-from bab4.raster import band_stats, load_npz, read_raster, read_stack_rgb
+from bab4.raster import boolean_mask_counts, load_npz, masked_band_stats, read_raster, read_stack_rgb
 from bab4.sections.base import section_result
 from bab4.writer import figure_result, write_table, write_text_artifact
 
@@ -35,45 +35,46 @@ def _table_sentinel1(config):
     rows = []
     for region in REGIONS:
         valid_pct = to_float(summary.get(region, {}).get("feature_valid_pct"))
-        for channel, filename in (("VV", "vv_norm.tif"), ("VH", "vh_norm.tif")):
-            path = config.dataset_root / "features_preprocessed" / region / filename
-            stats = band_stats(path)
-            rows.append(
-                {
-                    "region": region,
-                    "channel": channel,
-                    "min": fmt_float(stats["min"]),
-                    "max": fmt_float(stats["max"]),
-                    "mean": fmt_float(stats["mean"]),
-                    "std": fmt_float(stats["std"]),
-                    "valid_pct": fmt_float(valid_pct),
-                    "source": str(path.relative_to(config.root)),
-                }
-            )
-    return write_table(config, spec, rows, source="dataset/features_preprocessed/*/vv_norm.tif;vh_norm.tif")
+        feature_dir = config.dataset_root / "features_preprocessed" / region
+        mask_path = feature_dir / "feature_valid_mask.tif"
+        vv_stats = masked_band_stats(feature_dir / "vv_norm.tif", mask_path)
+        vh_stats = masked_band_stats(feature_dir / "vh_norm.tif", mask_path)
+        rows.append(
+            {
+                "wilayah": region.replace("_", " "),
+                "mean_vv": fmt_float(vv_stats["mean"]),
+                "std_vv": fmt_float(vv_stats["std"]),
+                "mean_vh": fmt_float(vh_stats["mean"]),
+                "std_vh": fmt_float(vh_stats["std"]),
+                "piksel_valid_pct": fmt_float(valid_pct),
+            }
+        )
+    return write_table(
+        config,
+        spec,
+        rows,
+        source="dataset/features_preprocessed/*/{vv_norm.tif,vh_norm.tif,feature_valid_mask.tif}",
+    )
 
 
 def _table_s2_valid(config):
     spec = _spec("Tabel 4.2")
-    feature = read_csv_row_map(config.dataset_root / "feature_preprocessing_summary.csv")
-    tile = read_csv_row_map(config.dataset_root / "preprocessing_summary.csv")
     rows = []
     for region in REGIONS:
-        frow = feature.get(region, {})
-        trow = tile.get(region, {})
-        s2_pct = to_float(frow.get("s2_valid_pct"))
+        feature_dir = config.dataset_root / "features_preprocessed" / region
+        counts = boolean_mask_counts(feature_dir / "s2_valid_mask.tif", feature_dir / "feature_valid_mask.tif")
+        s2_pct = pct(counts["true_count"], counts["total_count"])
+        s2_in_feature_pct = pct(counts["intersection_count"], counts["mask_count"])
+        feature_pct = pct(counts["mask_count"], counts["total_count"])
         rows.append(
             {
-                "region": region,
-                "raster_s2_valid_pct": fmt_float(s2_pct),
-                "tile_s2_valid_pixels": to_int(trow.get("s2_valid_pixels")),
-                "tile_valid_pixels": to_int(trow.get("valid_pixels")),
-                "tile_s2_valid_pct": fmt_float(to_float(trow.get("s2_valid_pixels")) / max(to_float(trow.get("valid_pixels")), 1) * 100),
-                "quality_status": region_quality_from_s2_pct(s2_pct),
-                "source": "dataset/feature_preprocessing_summary.csv;dataset/preprocessing_summary.csv",
+                "wilayah": region.replace("_", " "),
+                "s2_valid_terhadap_raster_pct": fmt_float(s2_pct),
+                "s2_valid_dalam_feature_valid_pct": fmt_float(s2_in_feature_pct),
+                "feature_valid_pct": fmt_float(feature_pct),
             }
         )
-    return write_table(config, spec, rows, source="dataset/feature_preprocessing_summary.csv;dataset/preprocessing_summary.csv")
+    return write_table(config, spec, rows, source="dataset/features_preprocessed/*/{s2_valid_mask.tif,feature_valid_mask.tif}")
 
 
 def _table_demnas(config):
@@ -82,22 +83,26 @@ def _table_demnas(config):
     rows = []
     for region in REGIONS:
         valid_pct = to_float(summary.get(region, {}).get("feature_valid_pct"))
-        for channel, filename in (("Slope", "slope_norm.tif"), ("HAND", "hand_norm.tif")):
-            path = config.dataset_root / "features_preprocessed" / region / filename
-            stats = band_stats(path)
-            rows.append(
-                {
-                    "region": region,
-                    "channel": channel,
-                    "min": fmt_float(stats["min"]),
-                    "max": fmt_float(stats["max"]),
-                    "mean": fmt_float(stats["mean"]),
-                    "std": fmt_float(stats["std"]),
-                    "valid_pct": fmt_float(valid_pct),
-                    "source": str(path.relative_to(config.root)),
-                }
-            )
-    return write_table(config, spec, rows, source="dataset/features_preprocessed/*/slope_norm.tif;hand_norm.tif")
+        feature_dir = config.dataset_root / "features_preprocessed" / region
+        mask_path = feature_dir / "feature_valid_mask.tif"
+        slope_stats = masked_band_stats(feature_dir / "slope_norm.tif", mask_path)
+        hand_stats = masked_band_stats(feature_dir / "hand_norm.tif", mask_path)
+        rows.append(
+            {
+                "wilayah": region.replace("_", " "),
+                "mean_slope": fmt_float(slope_stats["mean"]),
+                "std_slope": fmt_float(slope_stats["std"]),
+                "mean_hand": fmt_float(hand_stats["mean"]),
+                "std_hand": fmt_float(hand_stats["std"]),
+                "piksel_valid_pct": fmt_float(valid_pct),
+            }
+        )
+    return write_table(
+        config,
+        spec,
+        rows,
+        source="dataset/features_preprocessed/*/{slope_norm.tif,hand_norm.tif,feature_valid_mask.tif}",
+    )
 
 
 def _figure_channel_example(config):
@@ -105,22 +110,25 @@ def _figure_channel_example(config):
     region = config.test_region
     feature_dir = config.dataset_root / "features_preprocessed" / region
     panels = [
-        ("VV", read_raster(feature_dir / "vv_norm.tif")),
-        ("VH", read_raster(feature_dir / "vh_norm.tif")),
-        ("HSV pseudo-RGB", read_stack_rgb(feature_dir)),
-        ("Slope", read_raster(feature_dir / "slope_norm.tif")),
-        ("HAND", read_raster(feature_dir / "hand_norm.tif")),
+        ("Channel VV Sentinel-1", read_raster(feature_dir / "vv_norm.tif"), "gray"),
+        ("Channel VH Sentinel-1", read_raster(feature_dir / "vh_norm.tif"), "gray"),
+        ("Hue Sentinel-2", read_raster(feature_dir / "hue.tif"), "viridis"),
+        ("Saturation Sentinel-2", read_raster(feature_dir / "saturation.tif"), "viridis"),
+        ("Value Sentinel-2", read_raster(feature_dir / "value.tif"), "viridis"),
+        ("Slope DEMNAS", read_raster(feature_dir / "slope_norm.tif"), "viridis"),
+        ("HAND", read_raster(feature_dir / "hand_norm.tif"), "viridis"),
+        ("Pseudo-RGB HSV Sentinel-2", read_stack_rgb(feature_dir), None),
     ]
     setup_style()
-    fig, axes = plt.subplots(1, len(panels), figsize=(16, 4.2))
-    for ax, (title, arr) in zip(axes, panels):
+    fig, axes = plt.subplots(2, 4, figsize=(10.4, 5.0))
+    for idx, (ax, (title, arr, cmap)) in enumerate(zip(axes.ravel(), panels)):
         if arr.ndim == 3:
             ax.imshow(arr)
         else:
-            ax.imshow(normalize_image(arr), cmap="viridis")
-        ax.set_title(title)
+            ax.imshow(normalize_image(arr), cmap=cmap)
+        # ax.set_title(title, fontsize=8)
+        _subfigure_label(ax, idx)
         ax.axis("off")
-    fig.suptitle(f"Contoh channel input multisensor - {region}")
     path = config.figures_dir / spec.filename
     savefig(fig, path)
     return figure_result(config, spec, path, source=f"dataset/features_preprocessed/{region}/")
@@ -136,13 +144,16 @@ def _figure_s2_valid_vs_empty(config):
         x = np.asarray(tile["x"])
         s2 = np.asarray(tile["s2_valid_mask"])[0]
         rgb = _tile_hsv_to_rgb(x)
-        axes[row_idx, 0].imshow(normalize_image(x[0]), cmap="gray")
-        axes[row_idx, 0].set_title(f"{region} - VV")
-        axes[row_idx, 1].imshow(rgb)
-        axes[row_idx, 1].set_title("HSV pseudo-RGB")
-        axes[row_idx, 2].imshow(s2, cmap="gray", vmin=0, vmax=1)
-        axes[row_idx, 2].set_title("S2 valid mask")
-        for ax in axes[row_idx]:
+        row_panels = [
+            (rgb, None, "HSV/Pseudo-RGB"),
+            (s2, "gray", "Mask piksel valid S2"),
+            (normalize_image(x[0]), "gray", "Channel VV"),
+        ]
+        for col_idx, (image, cmap, title) in enumerate(row_panels):
+            ax = axes[row_idx, col_idx]
+            ax.imshow(image, cmap=cmap, vmin=0 if cmap == "gray" else None, vmax=1 if cmap == "gray" else None)
+            # ax.set_title(title, fontsize=8)
+            _subfigure_label(ax, row_idx * 3 + col_idx)
             ax.axis("off")
     path = config.figures_dir / spec.filename
     savefig(fig, path)
@@ -161,9 +172,13 @@ def _representative_tile(tile_dir: Path) -> dict:
 
 
 def _tile_hsv_to_rgb(x: np.ndarray) -> np.ndarray:
-    from bab4.plots import hsv_to_rgb
+    from bab4.plots import hsv_to_display_rgb
 
-    return hsv_to_rgb(x[2:5])
+    return hsv_to_display_rgb(x[2:5])
+
+
+def _subfigure_label(ax, idx: int) -> None:
+    ax.text(0.5, -0.015, f"({chr(97 + idx)})", transform=ax.transAxes, ha="center", va="top", fontsize=20)
 
 
 def _narrative(config):

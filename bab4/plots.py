@@ -70,6 +70,21 @@ def hsv_to_rgb(hsv: np.ndarray) -> np.ndarray:
     return np.clip(rgb, 0, 1)
 
 
+def hsv_to_display_rgb(hsv: np.ndarray, valid_mask: np.ndarray | None = None) -> np.ndarray:
+    """Convert HSV to pseudo-RGB for figures with display-only value stretching."""
+    hsv_arr = np.asarray(hsv, dtype=np.float32).copy()
+    value = hsv_arr[2]
+    if valid_mask is None:
+        valid = np.isfinite(value) & (value > 0)
+    else:
+        valid = np.asarray(valid_mask).astype(bool) & np.isfinite(value)
+    if valid.any():
+        stretched = np.zeros_like(value, dtype=np.float32)
+        stretched[valid] = np.power(normalize_image(value[valid]), 0.6)
+        hsv_arr[2] = stretched
+    return hsv_to_rgb(hsv_arr)
+
+
 def simple_bar(path: Path, labels: list[str], values: list[float], title: str, ylabel: str) -> None:
     setup_style()
     fig, ax = plt.subplots(figsize=(10, 4.8))

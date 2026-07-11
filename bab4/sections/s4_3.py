@@ -16,7 +16,7 @@ def _spec(artifact_id: str):
 def generate_4_3(config):
     fold_rows = _fold_rows(config)
     artifacts = [
-        write_table(config, _spec("Tabel 4.9"), fold_rows, source="scripts/preprocessing_utils.py;dataset/preprocessing_summary.csv"),
+        write_table(config, _spec("Tabel 4.9"), _fold_table_rows(fold_rows), source="scripts/preprocessing_utils.py;dataset/preprocessing_summary.csv"),
         _figure_fold_counts(config, fold_rows),
         _narrative(config),
     ]
@@ -44,6 +44,18 @@ def _fold_rows(config) -> list[dict[str, object]]:
             }
         )
     return rows
+
+
+def _fold_table_rows(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    return [
+        {
+            "fold": row["fold"],
+            "wilayah_validasi": str(row["validation_regions"]).replace("_", " "),
+            "wilayah_training": str(row["training_regions"]).replace("_", " "),
+            "final_test": str(row["held_out_final_test"]).replace("_", " "),
+        }
+        for row in rows
+    ]
 
 
 def _figure_fold_counts(config, rows):

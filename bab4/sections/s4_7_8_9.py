@@ -4,10 +4,13 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.patches import Patch
 
 from bab4.artifacts import ALL_ARTIFACTS, ArtifactSpec
-from bab4.common import MODEL_KEYS, MODEL_LABELS, REGIONS, fmt_float, pct, read_csv_row_map, read_csv_rows, region_quality_from_s2_pct, to_float, to_int
-from bab4.plots import hsv_to_rgb, normalize_image, savefig, setup_style
+from bab4.common import MODEL_KEYS, MODEL_LABELS, REGIONS, fmt_float, pct, read_csv_row_map, read_csv_rows, to_float, to_int
+from bab4.plots import hsv_to_display_rgb, normalize_image, savefig, setup_style
+from bab4.raster import masked_band_stats
+from bab4.sections.s4_2 import _tile_stats
 from bab4.sections.base import section_result
 from bab4.writer import figure_result, missing_result, write_table, write_text_artifact
 
@@ -57,7 +60,7 @@ def generate_4_8(config):
     difficult_rows = _difficult_data_rows(config)
     extreme_rows, selected_tiles = _extreme_tile_rows(config)
     artifacts = [
-        write_table(config, _spec("Tabel 4.16"), difficult_rows, source="dataset/preprocessing_summary.csv;dataset/feature_preprocessing_summary.csv"),
+        write_table(config, _spec("Tabel 4.16"), difficult_rows, source="dataset/tiles/7ch/by_region/*/*.npz;dataset/feature_preprocessing_summary.csv"),
         write_table(config, _spec("Tabel 4.17"), extreme_rows, source="dataset/tiles/7ch/by_region/*/*.npz"),
         _figure_difficult_cases(config, difficult_rows),
         _figure_extreme_tile(config, "Gambar 4.16", selected_tiles.get("hsv_zero"), "Kasus Sentinel-2 kosong/hampir kosong"),
@@ -136,42 +139,34 @@ def _literature_context_rows(effectiveness_rows: list[dict[str, object]]) -> lis
 
 
 def _difficult_data_rows(config) -> list[dict[str, object]]:
-    summary = read_csv_row_map(config.dataset_root / "preprocessing_summary.csv")
-    feature_summary = read_csv_row_map(config.dataset_root / "feature_preprocessing_summary.csv")
+    tile_stats = _tile_stats(config)
     rows = []
     for region in REGIONS:
-        row = summary[region]
+        row = tile_stats[region]
         valid = to_int(row.get("valid_pixels"))
         flood = to_int(row.get("flood_pixels"))
         water = to_int(row.get("water_river_pixels"))
         s2_valid = to_int(row.get("s2_valid_pixels"))
-        feature_row = feature_summary.get(region, {})
         s2_pct = pct(s2_valid, valid)
-        flags = []
-        if s2_pct < 0.01:
-            flags.append("Sentinel-2 kosong/hampir kosong")
-        if pct(water, valid) > 10:
-            flags.append("badan air dominan")
-        if pct(flood, valid) > 20:
-            flags.append("label banjir sangat dominan")
-        if to_int(row.get("tile_count")) < 50:
-            flags.append("jumlah tile kecil")
+        feature_dir = config.dataset_root / "features_preprocessed" / region
+        mask_path = feature_dir / "feature_valid_mask.tif"
+        slope_stats = masked_band_stats(feature_dir / "slope_norm.tif", mask_path)
+        hand_stats = masked_band_stats(feature_dir / "hand_norm.tif", mask_path)
         rows.append(
             {
-                "region": region,
-                "split": row.get("split", "cv"),
-                "tile_count": to_int(row.get("tile_count")),
-                "valid_pixels": valid,
+                "wilayah": region.replace("_", " "),
+                "piksel_valid": valid,
                 "flood_pct_of_valid": fmt_float(pct(flood, valid)),
                 "water_river_pct_of_valid": fmt_float(pct(water, valid)),
                 "s2_valid_pct_of_valid": fmt_float(s2_pct),
-                "s2_valid_pct_feature_report": fmt_float(to_float(feature_row.get("s2_valid_pct"))),
-                "feature_valid_pct": fmt_float(to_float(feature_row.get("feature_valid_pct"))),
-                "s2_quality": region_quality_from_s2_pct(s2_pct),
-                "difficulty_flags": "; ".join(flags) if flags else "tidak dominan",
+                "mean_slope": fmt_float(slope_stats["mean"]),
+                "mean_hand": fmt_float(hand_stats["mean"]),
             }
         )
-    return rows
+    order = ["Langsa", "Agam", "Aceh_Tamiang", "Pasaman_Barat", "Aceh_Utara", "Pidie_Jaya", "Pidie"]
+    order_labels = [region.replace("_", " ") for region in order]
+    by_region = {row["wilayah"]: row for row in rows}
+    return [by_region[label] for label in order_labels]
 
 
 def _extreme_tile_rows(config) -> tuple[list[dict[str, object]], dict[str, Path]]:
@@ -214,45 +209,48 @@ def _tile_summary_row(path: Path, payload: dict[str, np.ndarray], case_id: str, 
     s2 = np.squeeze(payload.get("s2_valid_mask", np.zeros_like(flood))).astype(bool) & valid
     valid_count = int(valid.sum())
     return {
-        "case_id": case_id,
-        "case_label": case_label,
-        "region": _region_from_tile(path),
+        "kasus": case_label,
         "tile": path.stem,
-        "valid_pixels": valid_count,
-        "flood_pixels": int(flood.sum()),
-        "water_river_pixels": int(water.sum()),
-        "s2_valid_pixels": int(s2.sum()),
+        "piksel_valid": valid_count,
         "flood_pct_of_valid": fmt_float(pct(int(flood.sum()), valid_count)),
-        "water_river_pct_of_valid": fmt_float(pct(int(water.sum()), valid_count)),
         "s2_valid_pct_of_valid": fmt_float(pct(int(s2.sum()), valid_count)),
-        "vv_mean_valid": fmt_float(_masked_mean(x[0], valid)),
-        "vh_mean_valid": fmt_float(_masked_mean(x[1], valid)),
+        "water_river_pct_of_valid": fmt_float(pct(int(water.sum()), valid_count)),
+        "dark_vv_pct_of_valid": fmt_float(_dark_vv_pct(x[0], valid)),
         "slope_mean_valid": fmt_float(_masked_mean(x[5], valid)),
         "hand_mean_valid": fmt_float(_masked_mean(x[6], valid)),
-        "selection_rule": selection_rule,
-        "source_file": str(path),
     }
+
+
+def _dark_vv_pct(vv: np.ndarray, valid: np.ndarray) -> float:
+    values = vv[valid]
+    if values.size == 0:
+        return 0.0
+    threshold = float(np.nanpercentile(values, 20))
+    return pct(int(np.count_nonzero(values <= threshold)), int(values.size))
 
 
 def _figure_difficult_cases(config, rows: list[dict[str, object]]):
     spec = _spec("Gambar 4.15")
-    labels = [str(row["region"]) for row in rows]
-    flood = [float(row["flood_pct_of_valid"]) for row in rows]
-    water = [float(row["water_river_pct_of_valid"]) for row in rows]
-    s2 = [float(row["s2_valid_pct_of_valid"]) for row in rows]
+    labels = [str(row["wilayah"]) for row in rows]
+    flood = np.asarray([float(row["flood_pct_of_valid"]) for row in rows])
+    water = np.asarray([float(row["water_river_pct_of_valid"]) for row in rows])
+    s2 = np.asarray([float(row["s2_valid_pct_of_valid"]) for row in rows])
+    recommended = np.asarray([(value < 1.0) or (flood[idx] > 10.0) for idx, value in enumerate(s2)])
     setup_style()
-    fig, ax = plt.subplots(figsize=(12, 5.0))
-    x = np.arange(len(rows))
-    width = 0.26
-    ax.bar(x - width, flood, width=width, label="Flood/valid")
-    ax.bar(x, water, width=width, label="Water/valid")
-    ax.bar(x + width, s2, width=width, label="S2 valid/valid")
-    ax.set_xticks(x, labels)
-    ax.tick_params(axis="x", rotation=35)
-    ax.set_ylabel("Persentase (%)")
-    ax.set_title("Kondisi data sulit per wilayah")
-    ax.legend()
-    ax.grid(axis="y", alpha=0.25)
+    fig, ax = plt.subplots(figsize=(8.2, 5.0))
+    colors = np.where(recommended, "#e45756", "#4c78a8")
+    sizes = 35 + water * 12
+    ax.scatter(s2, flood, s=sizes, c=colors, alpha=0.85, edgecolor="white", linewidth=0.8)
+    for label, x_val, y_val in zip(labels, s2, flood):
+        ax.text(x_val + 1.0, y_val + 0.15, label.replace(" ", "_"), fontsize=7)
+    ax.set_xlabel("Valid Sentinel-2 dalam valid mask (%)")
+    ax.set_ylabel("Piksel label dalam valid mask (%)")
+    ax.set_title("Kondisi Data Sulit per Wilayah", fontsize=9)
+    yes = Patch(facecolor="#e45756", label="yes")
+    optional = Patch(facecolor="#4c78a8", label="optional")
+    ax.legend(handles=[yes, optional], title="recommended_use_in_discussion", loc="center left", bbox_to_anchor=(1.02, 0.5), fontsize=7)
+    ax.set_xlim(-3, 103)
+    ax.grid(alpha=0.25)
     path = config.figures_dir / spec.filename
     savefig(fig, path)
     return figure_result(config, spec, path, source="dataset/preprocessing_summary.csv;dataset/feature_preprocessing_summary.csv")
@@ -267,41 +265,66 @@ def _figure_extreme_tile(config, artifact_id: str, tile_path: Path | None, title
     flood = np.squeeze(payload["y"])
     water = np.squeeze(payload.get("water_river_mask", np.zeros_like(flood)))
     s2 = np.squeeze(payload.get("s2_valid_mask", np.zeros_like(flood)))
-    panels = _panels_for_extreme_case(artifact_id, x, flood, water, s2)
+    panels = _panels_for_extreme_case(config, artifact_id, tile_path, x, flood, water, s2)
     setup_style()
-    fig, axes = plt.subplots(1, len(panels), figsize=(13, 3.4))
-    for ax, (panel_title, image, cmap) in zip(axes, panels):
-        ax.imshow(image, cmap=cmap, vmin=0 if cmap == "gray" else None, vmax=1 if cmap == "gray" else None)
-        ax.set_title(panel_title)
+    cols = 4 if artifact_id in {"Gambar 4.16", "Gambar 4.18"} else 3
+    rows = 2
+    fig, axes = plt.subplots(rows, cols, figsize=(10.5 if cols == 4 else 8.2, 5.4))
+    for idx, (ax, (panel_title, image, cmap)) in enumerate(zip(axes.ravel(), panels)):
+        binary_cmap = cmap in {"gray", "Reds", "Blues", "Oranges", "Greens"}
+        ax.imshow(image, cmap=cmap, vmin=0 if binary_cmap else None, vmax=1 if binary_cmap else None)
+        ax.set_title(panel_title, fontsize=8)
+        ax.text(0.5, -0.08, f"({chr(97 + idx)})", transform=ax.transAxes, ha="center", va="top", fontsize=9)
         ax.axis("off")
-    fig.suptitle(f"{title}: {tile_path.stem}", y=0.98)
+    for ax in axes.ravel()[len(panels):]:
+        ax.axis("off")
+    fig.suptitle(f"{title} - {tile_path.stem}", y=0.98, fontsize=9)
     path = config.figures_dir / spec.filename
     savefig(fig, path)
     return figure_result(config, spec, path, source=str(tile_path))
 
 
-def _panels_for_extreme_case(artifact_id: str, x: np.ndarray, flood: np.ndarray, water: np.ndarray, s2: np.ndarray):
+def _panels_for_extreme_case(config, artifact_id: str, tile_path: Path, x: np.ndarray, flood: np.ndarray, water: np.ndarray, s2: np.ndarray):
     if artifact_id == "Gambar 4.16":
         return [
-            ("VV", normalize_image(x[0]), "gray"),
-            ("HSV pseudo-RGB", hsv_to_rgb(x[2:5]), None),
-            ("S2 valid mask", s2, "gray"),
-            ("Label flood", flood, "gray"),
+            ("Sentinel-1 VV", normalize_image(x[0]), "gray"),
+            ("Sentinel-1 VH", normalize_image(x[1]), "gray"),
+            ("Pseudo-RGB HSV", hsv_to_display_rgb(x[2:5]), None),
+            ("S2 invalid mask", 1 - s2.astype(np.uint8), "Reds"),
+            ("HSV=0 pada valid area", np.all(np.isclose(x[2:5], 0.0), axis=0).astype(np.uint8), "Reds"),
+            ("Label UNOSAT", flood, "Blues"),
+            ("Slope", normalize_image(x[5]), "magma"),
+            ("HAND", normalize_image(x[6]), "viridis"),
         ]
     if artifact_id == "Gambar 4.17":
+        dark_vv = x[0] <= np.nanpercentile(x[0], 20)
         return [
-            ("VV", normalize_image(x[0]), "gray"),
-            ("VH", normalize_image(x[1]), "gray"),
-            ("Slope", normalize_image(x[5]), "viridis"),
+            ("Sentinel-1 VV", normalize_image(x[0]), "gray"),
+            ("Sentinel-1 VH", normalize_image(x[1]), "gray"),
+            ("Dark VV candidate", dark_vv.astype(np.uint8), "Reds"),
+            ("Slope", normalize_image(x[5]), "magma"),
             ("HAND", normalize_image(x[6]), "viridis"),
-            ("Label flood", flood, "gray"),
+            ("Label UNOSAT", flood, "Blues"),
         ]
+    unet = _load_prediction_for_tile(config, "unet", tile_path)
+    procanet = _load_prediction_for_tile(config, "procanet", tile_path)
     return [
-        ("HSV pseudo-RGB", hsv_to_rgb(x[2:5]), None),
-        ("Water/river mask", water, "gray"),
-        ("Label flood", flood, "gray"),
-        ("VV", normalize_image(x[0]), "gray"),
+        ("Sentinel-1 VV", normalize_image(x[0]), "gray"),
+        ("Sentinel-1 VH", normalize_image(x[1]), "gray"),
+        ("Water/river mask", water, "Blues"),
+        ("Label UNOSAT", flood, "Blues"),
+        ("Slope", normalize_image(x[5]), "magma"),
+        ("HAND", normalize_image(x[6]), "viridis"),
+        ("Prediksi U-Net", unet, "Oranges"),
+        ("Prediksi ProCANet", procanet, "Greens"),
     ]
+
+
+def _load_prediction_for_tile(config, model: str, tile_path: Path) -> np.ndarray:
+    prediction_path = config.runs_root / "final" / model / "eval_test" / "predictions" / _region_from_tile(tile_path) / tile_path.name
+    if prediction_path.exists():
+        return np.squeeze(_load_npz(prediction_path).get("prediction", np.zeros((1, 512, 512), dtype=np.uint8)))
+    return np.zeros((512, 512), dtype=np.uint8)
 
 
 def _findings_rows(config) -> list[dict[str, object]]:
@@ -354,7 +377,7 @@ def _narrative_4_7(config, rows: list[dict[str, object]]):
 
 def _narrative_4_8(config, rows: list[dict[str, object]]):
     spec = _spec("Narasi 4.8")
-    cases = ", ".join(str(row["case_label"]) for row in rows) if rows else "tidak ada tile ekstrem terpilih"
+    cases = ", ".join(str(row.get("kasus", row.get("case_label", ""))) for row in rows) if rows else "tidak ada tile ekstrem terpilih"
     text = f"""
     Kasus data ekstrem dipilih ulang dari tile `.npz` asli, meliputi {cases}. Statistik pada
     Tabel 4.16 dan 4.17 memperlihatkan bahwa kualitas Sentinel-2, dominasi badan air, dan

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -9,7 +10,7 @@ from matplotlib.patches import Patch
 
 from bab4.artifacts import ALL_ARTIFACTS
 from bab4.common import MODEL_KEYS, MODEL_LABELS, fmt_float, read_csv_rows, to_float, to_int
-from bab4.plots import hsv_to_rgb, normalize_image, savefig, setup_style
+from bab4.plots import hsv_to_display_rgb, normalize_image, savefig, setup_style
 from bab4.sections.base import section_result
 from bab4.writer import figure_result, missing_result, write_table, write_text_artifact
 
@@ -56,7 +57,7 @@ def generate_4_5(config):
             ],
         )
     artifacts = [
-        write_table(config, _spec("Tabel 4.13"), metric_rows, source="runs/final/{unet,procanet}/eval_test/metrics.csv"),
+        write_table(config, _spec("Tabel 4.13"), _metric_table_rows(metric_rows), source="runs/final/{unet,procanet}/eval_test/metrics.csv"),
         write_table(config, _spec("Tabel 4.14"), _confusion_rows(metric_rows), source="runs/final/{unet,procanet}/eval_test/metrics.csv"),
         _figure_metric_comparison(config, metric_rows),
         _narrative_4_5(config, metric_rows),
@@ -145,6 +146,30 @@ def _metric_rows(config) -> list[dict[str, object]]:
     return rows
 
 
+def _metric_table_rows(metric_rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    return [
+        {
+            "model": row["model"],
+            "loss": _report_float(row["loss"]),
+            "iou": _report_float(row["iou"]),
+            "dice_f1": _report_float(row["dice"]),
+            "accuracy": _report_float(row["accuracy"]),
+            "precision": _report_float(row["precision"]),
+            "recall": _report_float(row["recall"]),
+            "specificity": _report_float(
+                int(row["tn"]) / max(int(row["tn"]) + int(row["fp"]), 1),
+            ),
+        }
+        for row in metric_rows
+    ]
+
+
+def _report_float(value: object, digits: int = 3) -> str:
+    quant = Decimal("1").scaleb(-digits)
+    adjusted = Decimal(str(float(value) + 0.5 * (10 ** -(digits + 2))))
+    return f"{adjusted.quantize(quant, rounding=ROUND_HALF_UP):.{digits}f}"
+
+
 def _confusion_rows(metric_rows: list[dict[str, object]]) -> list[dict[str, object]]:
     rows = []
     for row in metric_rows:
@@ -152,22 +177,15 @@ def _confusion_rows(metric_rows: list[dict[str, object]]) -> list[dict[str, obje
         tn = int(row["tn"])
         fp = int(row["fp"])
         fn = int(row["fn"])
-        total = tp + tn + fp + fn
         rows.append(
             {
                 "model": row["model"],
-                "region": row["region"],
-                "true_positive": tp,
-                "true_negative": tn,
-                "false_positive": fp,
-                "false_negative": fn,
-                "total_evaluated_pixels": total,
-                "reference_flood_pixels": tp + fn,
-                "predicted_flood_pixels": tp + fp,
-                "precision": row["precision"],
-                "recall": row["recall"],
-                "false_positive_rate": fmt_float(fp / (fp + tn) if fp + tn else 0.0, 6),
-                "false_negative_rate": fmt_float(fn / (fn + tp) if fn + tp else 0.0, 6),
+                "tp": tp,
+                "tn": tn,
+                "fp": fp,
+                "fn": fn,
+                "fpr": fmt_float(fp / (fp + tn) if fp + tn else 0.0, 4),
+                "fnr": fmt_float(fn / (fn + tp) if fn + tp else 0.0, 4),
             }
         )
     return rows
@@ -183,12 +201,14 @@ def _figure_metric_comparison(config, rows: list[dict[str, object]]):
     width = 0.34
     for idx, row in enumerate(rows):
         offset = (idx - (len(rows) - 1) / 2) * width
-        ax.bar(x + offset, [float(row[metric]) for metric in metrics], width=width, label=labels[idx])
-    ax.set_xticks(x, [metric.upper() if metric in {"iou"} else metric.title() for metric in metrics])
+        bars = ax.bar(x + offset, [float(row[metric]) for metric in metrics], width=width, label=labels[idx])
+        ax.bar_label(bars, fmt="%.3f", fontsize=7, padding=2)
+    ax.set_xticks(x, ["iou", "dice_f1", "accuracy", "precision", "recall"])
     ax.set_ylim(0, 1.05)
     ax.set_ylabel("Nilai")
-    ax.set_title(f"Perbandingan metrik final pada wilayah uji {config.test_region}")
-    ax.legend()
+    ax.set_xlabel("Metrik")
+    ax.set_title(f"Metrik Final pada {config.test_region.replace('_', ' ')}")
+    ax.legend(title="Model")
     ax.grid(axis="y", alpha=0.25)
     path = config.figures_dir / spec.filename
     savefig(fig, path)
@@ -234,15 +254,14 @@ def _error_count_rows(tile_path: Path, tile: dict[str, np.ndarray], predictions:
         dice = (2 * tp) / (2 * tp + fp + fn) if 2 * tp + fp + fn else 0.0
         rows.append(
             {
-                "tile": tile_path.stem,
                 "model": MODEL_LABELS[model],
                 "valid_pixels": int(effective.sum()),
-                "true_positive": tp,
-                "true_negative": tn,
-                "false_positive": fp,
-                "false_negative": fn,
-                "tile_iou": fmt_float(iou, 6),
-                "tile_dice": fmt_float(dice, 6),
+                "label_positive_pixels": tp + fn,
+                "predicted_positive_pixels": tp + fp,
+                "tn": tn,
+                "tp": tp,
+                "fp": fp,
+                "fn": fn,
             }
         )
     return rows
@@ -253,20 +272,22 @@ def _figure_segmentation_panel(config, tile_path: Path, tile: dict[str, np.ndarr
     x = np.asarray(tile["x"], dtype=np.float32)
     truth = np.squeeze(tile["y"])
     panels = [
-        ("VV", normalize_image(x[0]), "gray"),
-        ("HSV pseudo-RGB", hsv_to_rgb(x[2:5]), None),
+        ("Kanal Sentinel-1 VV", normalize_image(x[0]), "gray"),
+        ("Kanal Sentinel-1 VH", normalize_image(x[1]), "gray"),
+        ("Pseudo-RGB HSV Sentinel-2", hsv_to_display_rgb(x[2:5]), None),
+        ("Slope", normalize_image(x[5]), "magma"),
         ("HAND", normalize_image(x[6]), "viridis"),
-        ("Label UNOSAT", truth, "gray"),
-        ("Prediksi U-Net", np.squeeze(predictions["unet"]["prediction"]), "gray"),
-        ("Prediksi ProCANet", np.squeeze(predictions["procanet"]["prediction"]), "gray"),
+        ("Label UNOSAT", truth, "Blues"),
+        ("Prediksi U-Net", np.squeeze(predictions["unet"]["prediction"]), "Oranges"),
+        ("Prediksi ProCANet", np.squeeze(predictions["procanet"]["prediction"]), "Greens"),
     ]
     setup_style()
-    fig, axes = plt.subplots(1, len(panels), figsize=(15, 3.4))
-    for ax, (title, arr, cmap) in zip(axes, panels):
+    fig, axes = plt.subplots(2, 4, figsize=(10.5, 5.6))
+    for idx, (ax, (title, arr, cmap)) in enumerate(zip(axes.ravel(), panels)):
         ax.imshow(arr, cmap=cmap, vmin=0 if cmap == "gray" else None, vmax=1 if cmap == "gray" else None)
-        ax.set_title(title)
+        ax.set_title(title, fontsize=8)
+        ax.text(0.5, -0.08, f"({chr(97 + idx)})", transform=ax.transAxes, ha="center", va="top", fontsize=9)
         ax.axis("off")
-    fig.suptitle(f"Panel input, label, dan prediksi: {tile_path.stem}", y=0.98)
     path = config.figures_dir / spec.filename
     savefig(fig, path)
     return figure_result(
@@ -281,29 +302,26 @@ def _figure_error_map(config, tile_path: Path, tile: dict[str, np.ndarray], pred
     spec = _spec("Gambar 4.14")
     truth = np.squeeze(tile["y"]).astype(bool)
     valid = _valid_mask(tile)
-    cmap = ListedColormap(["#d1d5db", "#ffffff", "#16a34a", "#f97316", "#dc2626"])
+    cmap = ListedColormap(["#ffffff", "#16a34a", "#dc2626", "#2563eb"])
     labels = [
-        Patch(facecolor="#d1d5db", label="Invalid"),
-        Patch(facecolor="#ffffff", edgecolor="#9ca3af", label="TN"),
         Patch(facecolor="#16a34a", label="TP"),
-        Patch(facecolor="#f97316", label="FP"),
-        Patch(facecolor="#dc2626", label="FN"),
+        Patch(facecolor="#ffffff", edgecolor="#9ca3af", label="TN"),
+        Patch(facecolor="#dc2626", label="FP"),
+        Patch(facecolor="#2563eb", label="FN"),
     ]
     setup_style()
-    fig, axes = plt.subplots(1, 2, figsize=(8, 4.0))
+    fig, axes = plt.subplots(1, 2, figsize=(8.4, 4.2))
     for ax, model in zip(axes, MODEL_KEYS):
         prediction = np.squeeze(predictions[model]["prediction"]).astype(bool)
         effective = np.squeeze(predictions[model].get("effective_valid_mask", valid)).astype(bool) & valid
         error = np.zeros(truth.shape, dtype=np.uint8)
-        error[~truth & ~prediction & effective] = 1
-        error[truth & prediction & effective] = 2
-        error[~truth & prediction & effective] = 3
-        error[truth & ~prediction & effective] = 4
-        ax.imshow(error, cmap=cmap, vmin=0, vmax=4)
+        error[truth & prediction & effective] = 1
+        error[~truth & prediction & effective] = 2
+        error[truth & ~prediction & effective] = 3
+        ax.imshow(error, cmap=cmap, vmin=0, vmax=3)
         ax.set_title(MODEL_LABELS[model])
         ax.axis("off")
-    fig.legend(handles=labels, loc="lower center", ncol=5, frameon=False)
-    fig.suptitle(f"Error map TP/FP/FN/TN: {tile_path.stem}", y=0.98)
+    fig.legend(handles=labels, loc="lower center", ncol=4, frameon=False)
     path = config.figures_dir / spec.filename
     savefig(fig, path)
     return figure_result(

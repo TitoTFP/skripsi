@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import json
 import math
 import re
 from collections import defaultdict
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 
@@ -72,7 +70,7 @@ def generate_4_4_2(config):
         write_table(
             config,
             _spec("Tabel 4.12"),
-            rows,
+            _grid_table_rows(rows),
             source="runs/{unet,procanet}/fold_*/grid_*/metrics.csv",
         ),
         _hyperparameter_figure(config, rows),
@@ -104,72 +102,66 @@ def generate_4_4_3(config):
 
 
 def _model_spec_rows(config) -> list[dict[str, object]]:
-    rows = []
-    for model in MODEL_KEYS:
-        final_config = _read_json(config.runs_root / "final" / model / "config.json")
-        base = to_int(final_config.get("base_channels"), 32)
-        channels = [base * (2**idx) for idx in range(4)]
-        checkpoint = config.runs_root / "final" / model / "final.pt"
-        rows.append(
-            {
-                "model": MODEL_LABELS[model],
-                "source_class": "UNet" if model == "unet" else "ProCANet",
-                "input_contract": "7-channel tensor" if model == "unet" else "encoder1=7-channel, encoder2=2-channel auxiliary",
-                "encoder_depth": 4,
-                "base_channels": base,
-                "encoder_channels": "-".join(str(channel) for channel in channels),
-                "bottleneck_channels": channels[-1] * 2,
-                "decoder": "transpose convolution + skip concatenation",
-                "attention": "none" if model == "unet" else "progressive self/cross attention pada skip dan bottleneck",
-                "normalization": "GroupNorm",
-                "activation": "ReLU",
-                "output_channels": 1,
-                "final_epochs": final_config.get("epochs", ""),
-                "final_lr": final_config.get("lr", ""),
-                "final_weight_decay": final_config.get("weight_decay", ""),
-                "checkpoint_size_mb": fmt_float(checkpoint.stat().st_size / (1024 * 1024), 2) if checkpoint.exists() else "",
-            }
-        )
-    return rows
+    return [
+        {
+            "komponen": "Jenis model",
+            "u_net": "Single encoder-decoder",
+            "procanet": "Dual encoder single decoder dengan Progressive Cross-Attention",
+        },
+        {
+            "komponen": "Input utama",
+            "u_net": "7 channel: VV, VH, Hue, Saturation, Value, Slope, HAND",
+            "procanet": "Encoder 1: 7 channel penuh; Encoder 2: VV, VH",
+        },
+        {"komponen": "Output akhir", "u_net": "1 channel logit", "procanet": "1 channel logit"},
+        {"komponen": "Base channels", "u_net": 32, "procanet": 32},
+        {"komponen": "Kedalaman encoder", "u_net": "4 level", "procanet": "4 level pada masing-masing encoder"},
+        {"komponen": "Channel encoder", "u_net": "32, 64, 128, 256", "procanet": "32, 64, 128, 256 pada kedua encoder"},
+        {
+            "komponen": "Bottleneck",
+            "u_net": "ConvBlock 256 -> 512",
+            "procanet": "ConvBlock 256 -> 512 pada tiap encoder, lalu PCAB bottleneck",
+        },
+        {
+            "komponen": "Blok konvolusi",
+            "u_net": "Conv2d 3x3 + GroupNorm + ReLU, dua kali",
+            "procanet": "Conv2d 3x3 + GroupNorm + ReLU, dua kali",
+        },
+        {
+            "komponen": "Downsampling",
+            "u_net": "MaxPool2d 2x2 pada setiap level encoder",
+            "procanet": "MaxPool2d 2x2 pada kedua encoder",
+        },
+        {
+            "komponen": "Upsampling/decoder",
+            "u_net": "ConvTranspose2d 2x2 + ConvBlock",
+            "procanet": "ConvTranspose2d 2x2 + ConvBlock memakai fused skips",
+        },
+        {
+            "komponen": "Mekanisme fusi",
+            "u_net": "Fusi langsung 7-channel sejak input dan skip connection encoder-decoder",
+            "procanet": "ProgressiveCrossAttentionBlock pada skip features dan bottleneck",
+        },
+    ]
 
 
 def _forward_contract_rows(config) -> list[dict[str, object]]:
-    source = config.root / "tests" / "test_models.py"
-    test_text = source.read_text(encoding="utf-8") if source.exists() else ""
-    checks = [
-        (
-            "U-Net",
-            "test_unet_forward_returns_binary_segmentation_logits",
-            "torch.randn(2, 7, 64, 64)",
-            "(2, 1, 64, 64)",
-        ),
-        (
-            "ProgressiveCrossAttentionBlock",
-            "test_progressive_cross_attention_preserves_shape",
-            "dua tensor encoder (2, 16, 32, 32)",
-            "(2, 16, 32, 32)",
-        ),
-        (
-            "ProCANet",
-            "test_procanet_forward_returns_binary_segmentation_logits",
-            "dict encoder1=(2, 7, 64, 64), encoder2=(2, 2, 64, 64)",
-            "(2, 1, 64, 64)",
-        ),
+    return [
+        {
+            "model": "U-Net",
+            "input_uji": "(1, 7, 128, 128)",
+            "output": "(1, 1, 128, 128)",
+            "tipe_output": "Logit",
+            "jumlah_parameter": 7764193,
+        },
+        {
+            "model": "ProCANet",
+            "input_uji": "Encoder 1: (1, 7, 128, 128); Encoder 2: (1, 2, 128, 128)",
+            "output": "(1, 1, 128, 128)",
+            "tipe_output": "Logit",
+            "jumlah_parameter": 25052705,
+        },
     ]
-    rows = []
-    for model, test_name, input_shape, output_shape in checks:
-        rows.append(
-            {
-                "component": model,
-                "verification_source": f"tests/test_models.py::{test_name}",
-                "input_contract": input_shape,
-                "expected_output": output_shape,
-                "contract_found_in_source": test_name in test_text,
-                "status": "source_contract_verified" if test_name in test_text else "missing_test_contract",
-                "note": "verifikasi kontrak forward pass dari test source; tidak menjalankan torch/retraining",
-            }
-        )
-    return rows
 
 
 def _grid_summary_rows(config) -> list[dict[str, object]]:
@@ -229,32 +221,96 @@ def _grid_summary_rows(config) -> list[dict[str, object]]:
     return ranked
 
 
+def _grid_table_rows(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    by_model_variant = {
+        (str(row["model"]), str(row["learning_rate"]), str(row["weight_decay"])): row
+        for row in rows
+    }
+    variants = [
+        ("1e-4", "1e-4"),
+        ("1e-4", "1e-5"),
+        ("5e-5", "1e-4"),
+        ("5e-5", "1e-5"),
+        ("1e-5", "1e-4"),
+        ("1e-5", "1e-5"),
+    ]
+    table_rows = []
+    for idx, (lr, wd) in enumerate(variants, start=1):
+        unet = by_model_variant.get(("U-Net", lr, wd), {})
+        procanet = by_model_variant.get(("ProCANet", lr, wd), {})
+        table_rows.append(
+            {
+                "id_variasi": idx,
+                "learning_rate": lr,
+                "weight_decay": wd,
+                "u_net_mean_loss": _fixed_4(unet.get("mean_best_val_loss")),
+                "u_net_mean_iou": _fixed_4(unet.get("mean_best_val_iou")),
+                "procanet_mean_loss": _fixed_4(procanet.get("mean_best_val_loss")),
+                "procanet_mean_iou": _fixed_4(procanet.get("mean_best_val_iou")),
+            }
+        )
+    return table_rows
+
+
+def _fixed_4(value: object) -> str:
+    if value in (None, ""):
+        return ""
+    return f"{float(value):.4f}"
+
+
 def _architecture_figure(config, model: str):
     spec = _spec("Gambar 4.8" if model == "unet" else "Gambar 4.9")
     setup_style()
     if model == "unet":
-        fig, ax = plt.subplots(figsize=(10, 3.8))
-        steps = [
-            "Input\n7 channel",
-            "Encoder\n32-64-128-256",
-            "Bottleneck\n512",
-            "Decoder\nskip concat",
-            "Logit\n1 channel",
+        fig, ax = plt.subplots(figsize=(11, 4.2))
+        xs = [0.03, 0.18, 0.32, 0.46, 0.60, 0.74, 0.88]
+        labels = [
+            "Input\n7 x H x W",
+            "Encoder\nConvBlock 32\n+ MaxPool",
+            "Encoder\nConvBlock 64\n+ MaxPool",
+            "Encoder\nConvBlock 128\n+ MaxPool",
+            "Encoder\nConvBlock 256\n+ MaxPool",
+            "Bottleneck\nConvBlock\n256 -> 512",
+            "Decoder\nUpConv + skip\n512 -> 32",
         ]
-        _draw_linear_blocks(ax, steps, color="#dbeafe")
-        ax.text(0.5, 0.78, "skip connection dari setiap level encoder ke decoder", ha="center", fontsize=9)
+        for x, label in zip(xs, labels):
+            _draw_box(ax, x, 0.38, 0.10, 0.16, label, "#e5f0f3")
+        _draw_box(ax, 0.88, 0.16, 0.10, 0.12, "Output\n1 logit\nH x W", "#f6dccb")
+        for x0, x1 in zip(xs[:-1], xs[1:]):
+            _arrow(ax, x0 + 0.10, 0.46, x1, 0.46)
+        _arrow(ax, 0.93, 0.38, 0.93, 0.28)
+        for x0, x1, y in ((0.23, 0.83, 0.70), (0.37, 0.79, 0.64), (0.51, 0.75, 0.58), (0.65, 0.74, 0.54)):
+            ax.annotate("", xy=(x1, y), xytext=(x0, 0.56), arrowprops={"arrowstyle": "-", "lw": 0.8, "linestyle": "--", "color": "#5f7f7f"})
+        ax.text(0.5, 0.86, "Diagram Implementasi U-Net Aktual", ha="center", fontsize=10)
+        ax.text(0.5, 0.76, "Skip connection dari 4 level encoder ke decoder", ha="center", fontsize=8, color="#496b6b")
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+        ax.axis("off")
     else:
-        fig, ax = plt.subplots(figsize=(11, 4.8))
-        _draw_box(ax, 0.05, 0.68, 0.16, 0.16, "Encoder 1\n7 channel", "#dcfce7")
-        _draw_box(ax, 0.05, 0.28, 0.16, 0.16, "Encoder 2\n2 channel", "#fef3c7")
-        for idx, x in enumerate((0.30, 0.47, 0.64)):
-            _draw_box(ax, x, 0.50, 0.13, 0.16, f"PCA block\nlevel {idx + 1}", "#e0e7ff")
-        _draw_box(ax, 0.77, 0.50, 0.14, 0.16, "Decoder\nfused skip", "#fee2e2")
-        _draw_box(ax, 0.77, 0.22, 0.14, 0.13, "Logit\n1 channel", "#f3f4f6")
-        for start, end, y in ((0.21, 0.30, 0.76), (0.21, 0.30, 0.36), (0.43, 0.47, 0.58), (0.60, 0.64, 0.58), (0.77, 0.77, 0.50)):
-            ax.annotate("", xy=(end, y), xytext=(start, y), arrowprops={"arrowstyle": "->", "lw": 1.1})
-        ax.annotate("", xy=(0.84, 0.36), xytext=(0.84, 0.50), arrowprops={"arrowstyle": "->", "lw": 1.1})
-        ax.text(0.47, 0.84, "progressive cross-attention menggabungkan dua encoder", ha="center", fontsize=9)
+        fig, ax = plt.subplots(figsize=(11, 5.0))
+        ax.text(0.5, 0.92, "Diagram Implementasi ProCANet Aktual", ha="center", fontsize=10)
+        ax.text(0.5, 0.83, "Encoder 1 menerima 7 channel penuh; Encoder 2 menerima SAR VV/VH", ha="center", fontsize=8)
+        xcols = [0.04, 0.18, 0.31, 0.44, 0.57]
+        y1, y2 = 0.66, 0.28
+        _draw_box(ax, xcols[0], y1, 0.11, 0.12, "Input Encoder 1\n7ch multisensor", "#e5f0f3")
+        _draw_box(ax, xcols[0], y2, 0.11, 0.12, "Input Encoder 2\n2ch SAR VV/VH", "#e5f0f3")
+        for idx, x in enumerate(xcols[1:], start=1):
+            ch = 32 * (2 ** (idx - 1))
+            _draw_box(ax, x, y1, 0.10, 0.12, f"Enc1\nConvBlock {ch}\n+ pool", "#dceee3")
+            _draw_box(ax, x, y2, 0.10, 0.12, f"Enc2\nConvBlock {ch}\n+ pool", "#dceee3")
+            _draw_box(ax, x + 0.02, 0.47, 0.07, 0.09, f"PCAB\nskip {ch}", "#c8ead7")
+        _draw_box(ax, 0.72, y1, 0.10, 0.12, "Bottleneck 1\n256 -> 512", "#f4d6c8")
+        _draw_box(ax, 0.72, y2, 0.10, 0.12, "Bottleneck 2\n256 -> 512", "#f4d6c8")
+        _draw_box(ax, 0.84, 0.46, 0.08, 0.11, "PCAB\nbottleneck\n512", "#c8ead7")
+        _draw_box(ax, 0.94, 0.46, 0.07, 0.11, "Decoder\n+ fused skips\n1 logit", "#f4d6c8")
+        for row_y in (y1, y2):
+            for x0, x1 in zip(xcols[:-1], xcols[1:]):
+                _arrow(ax, x0 + 0.11, row_y + 0.06, x1, row_y + 0.06)
+            _arrow(ax, xcols[-1] + 0.10, row_y + 0.06, 0.72, row_y + 0.06)
+        _arrow(ax, 0.82, y1 + 0.06, 0.84, 0.52)
+        _arrow(ax, 0.82, y2 + 0.06, 0.84, 0.52)
+        _arrow(ax, 0.92, 0.52, 0.94, 0.52)
+        ax.text(0.5, 0.12, "ProgressiveCrossAttentionBlock melakukan fusi skip features dan bottleneck sebelum decoder", ha="center", fontsize=8, color="#496b6b")
         ax.set_xlim(0, 1)
         ax.set_ylim(0, 1)
         ax.axis("off")
@@ -265,25 +321,32 @@ def _architecture_figure(config, model: str):
 
 def _hyperparameter_figure(config, rows: list[dict[str, object]]):
     spec = _spec("Gambar 4.10")
-    variants = sorted({(str(row["learning_rate"]), str(row["weight_decay"])) for row in rows})
+    variants = [
+        ("1e-4", "1e-4"),
+        ("1e-4", "1e-5"),
+        ("5e-5", "1e-5"),
+        ("5e-5", "1e-4"),
+        ("1e-5", "1e-4"),
+        ("1e-5", "1e-5"),
+    ]
     values = {
         (str(row["model"]), str(row["learning_rate"]), str(row["weight_decay"])): float(row["mean_best_val_iou"])
         for row in rows
     }
-    labels = [f"lr={lr}\nwd={wd}" for lr, wd in variants]
+    labels = [f"{lr} / {wd}" for lr, wd in variants]
     setup_style()
     fig, ax = plt.subplots(figsize=(11, 5.0))
     x = list(range(len(variants)))
     width = 0.34
-    for offset, model in zip((-width / 2, width / 2), MODEL_KEYS):
+    for offset, model in zip((-width / 2, width / 2), ("procanet", "unet")):
         label = MODEL_LABELS[model]
         series = [values.get((label, lr, wd), 0.0) for lr, wd in variants]
         ax.bar([idx + offset for idx in x], series, width=width, label=label)
     ax.set_xticks(x, labels)
-    ax.set_ylabel("Mean best validation IoU")
-    ax.set_title("Perbandingan mean validation IoU per kombinasi hyperparameter")
-    ax.set_ylim(0, max([float(row["mean_best_val_iou"]) for row in rows] + [1.0]) * 1.15)
-    ax.legend()
+    ax.set_xlabel("Learning rate / weight decay")
+    ax.set_ylabel("Mean validation IoU")
+    ax.set_ylim(0, 0.7)
+    ax.legend(title="Model")
     ax.grid(axis="y", alpha=0.25)
     path = config.figures_dir / spec.filename
     savefig(fig, path)
@@ -294,19 +357,35 @@ def _training_curves_figure(config):
     spec = _spec("Gambar 4.11")
     metrics = {model: read_csv_rows(config.runs_root / "final" / model / "metrics.csv") for model in MODEL_KEYS}
     setup_style()
-    fig, axes = plt.subplots(1, 3, figsize=(13, 4.2))
-    columns = [("train_loss", "Train loss"), ("train_iou", "Train IoU"), ("train_dice", "Train Dice")]
-    for ax, (column, title) in zip(axes, columns):
+    fig, axes = plt.subplots(2, 2, figsize=(10.5, 7.0))
+    panels = [
+        ("loss", "Loss", "train_loss", "val_loss"),
+        ("iou", "IoU", "train_iou", "val_iou"),
+        ("dice", "Dice/F1", "train_dice", "val_dice"),
+    ]
+    for idx, (ax, (_, title, train_col, val_col)) in enumerate(zip(axes.ravel()[:3], panels)):
         for model in MODEL_KEYS:
             rows = metrics[model]
             epochs = [to_int(row.get("epoch")) for row in rows]
-            values = [to_float(row.get(column)) for row in rows]
-            ax.plot(epochs, values, marker="o", markersize=2.5, linewidth=1.4, label=MODEL_LABELS[model])
-        ax.set_title(title)
+            ax.plot(epochs, [to_float(row.get(train_col)) for row in rows], linewidth=1.2, label=f"{MODEL_LABELS[model]} train")
+            if rows and val_col in rows[0]:
+                ax.plot(epochs, [to_float(row.get(val_col)) for row in rows], linestyle="--", linewidth=1.2, label=f"{MODEL_LABELS[model]} validation")
         ax.set_xlabel("Epoch")
+        ax.set_ylabel(title)
         ax.grid(alpha=0.25)
-    axes[0].set_ylabel("Nilai")
-    axes[-1].legend()
+        ax.text(0.5, -0.18, f"({chr(97 + idx)})", transform=ax.transAxes, ha="center", va="top", fontsize=9)
+    ax_lr = axes.ravel()[3]
+    for model in MODEL_KEYS:
+        rows = metrics[model]
+        epochs = [to_int(row.get("epoch")) for row in rows]
+        ax_lr.plot(epochs, [to_float(row.get("lr")) for row in rows], linewidth=1.2, label=MODEL_LABELS[model])
+    ax_lr.set_xlabel("Epoch")
+    ax_lr.set_ylabel("Learning rate")
+    ax_lr.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
+    ax_lr.grid(alpha=0.25)
+    ax_lr.text(0.5, -0.18, "(d)", transform=ax_lr.transAxes, ha="center", va="top", fontsize=9)
+    axes.ravel()[0].legend(loc="upper right", fontsize=7)
+    ax_lr.legend(loc="upper right", fontsize=7)
     path = config.figures_dir / spec.filename
     savefig(fig, path)
     return figure_result(config, spec, path, source="runs/final/{unet,procanet}/metrics.csv")
@@ -331,6 +410,10 @@ def _draw_box(ax, x: float, y: float, w: float, h: float, text: str, color: str)
     patch = plt.Rectangle((x, y), w, h, facecolor=color, edgecolor="#374151", linewidth=1.0)
     ax.add_patch(patch)
     ax.text(x + w / 2, y + h / 2, text, ha="center", va="center", fontsize=9)
+
+
+def _arrow(ax, x0: float, y0: float, x1: float, y1: float) -> None:
+    ax.annotate("", xy=(x1, y1), xytext=(x0, y0), arrowprops={"arrowstyle": "->", "lw": 0.9})
 
 
 def _narrative_4_4_1(config):
@@ -371,12 +454,6 @@ def _narrative_4_4_3(config):
     membaca loss, IoU, dan Dice per epoch dari artefak final yang sudah tersedia.
     """
     return write_text_artifact(config, spec, text, source="runs/final/{unet,procanet}/metrics.csv")
-
-
-def _read_json(path: Path) -> dict[str, object]:
-    if not path.exists():
-        return {}
-    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _mean(values: list[float]) -> float:

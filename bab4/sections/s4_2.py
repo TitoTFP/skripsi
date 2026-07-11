@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from bab4.artifacts import ALL_ARTIFACTS
-from bab4.common import REGIONS, fmt_float, pct, read_csv_row_map, to_float, to_int
-from bab4.plots import hsv_to_rgb, normalize_image, savefig, setup_style
+from bab4.common import REGIONS, fmt_float, pct, to_float, to_int
+from bab4.plots import hsv_to_display_rgb, normalize_image, savefig, setup_style
 from bab4.raster import load_npz, read_raster
 from bab4.sections.base import section_result
 from bab4.writer import figure_result, write_table, write_text_artifact
@@ -18,8 +18,9 @@ def _spec(artifact_id: str):
 
 
 def generate_4_2(config):
-    label_rows = _label_rows(config)
-    tile_rows = _tile_rows(config)
+    tile_stats = _tile_stats(config)
+    label_rows = _label_rows(tile_stats)
+    tile_rows = _tile_rows(tile_stats)
     artifacts = [
         write_table(config, _spec("Tabel 4.6"), label_rows, source="dataset/preprocessing_summary.csv"),
         write_table(config, _spec("Tabel 4.7"), _label_percentage_rows(label_rows), source="dataset/preprocessing_summary.csv"),
@@ -32,26 +33,63 @@ def generate_4_2(config):
     return section_result("4.2", artifacts)
 
 
-def _label_rows(config) -> list[dict[str, object]]:
-    summary = read_csv_row_map(config.dataset_root / "preprocessing_summary.csv")
+def _tile_stats(config) -> dict[str, dict[str, object]]:
+    stats = {}
+    tile_root = config.dataset_root / "tiles" / "7ch" / "by_region"
+    for region in REGIONS:
+        total_tile = 0
+        valid_tile = 0
+        positive_tile = 0
+        valid_pixels = 0
+        flood_pixels = 0
+        water_river_pixels = 0
+        s2_valid_pixels = 0
+        for path in sorted((tile_root / region).glob("*.npz")):
+            total_tile += 1
+            tile = load_npz(path)
+            valid = np.squeeze(tile["valid_mask"]).astype(bool)
+            flood = np.squeeze(tile["y"]).astype(bool) & valid
+            water = np.squeeze(tile.get("water_river_mask", np.zeros_like(valid))).astype(bool) & valid
+            s2 = np.squeeze(tile.get("s2_valid_mask", np.zeros_like(valid))).astype(bool) & valid
+            valid_count = int(valid.sum())
+            flood_count = int(flood.sum())
+            valid_pixels += valid_count
+            flood_pixels += flood_count
+            water_river_pixels += int(water.sum())
+            s2_valid_pixels += int(s2.sum())
+            if valid_count > 0:
+                valid_tile += 1
+                if flood_count > 0:
+                    positive_tile += 1
+        stats[region] = {
+            "split": "test" if region == config.test_region else "cv",
+            "total_tile": total_tile,
+            "valid_tile": valid_tile,
+            "positive_tile": positive_tile,
+            "background_tile": max(valid_tile - positive_tile, 0),
+            "valid_pixels": valid_pixels,
+            "flood_pixels": flood_pixels,
+            "non_flood_pixels": max(valid_pixels - flood_pixels, 0),
+            "water_river_pixels": water_river_pixels,
+            "s2_valid_pixels": s2_valid_pixels,
+        }
+    return stats
+
+
+def _label_rows(tile_stats: dict[str, dict[str, object]]) -> list[dict[str, object]]:
     rows = []
     for region in REGIONS:
-        row = summary[region]
+        row = tile_stats[region]
         valid = to_int(row.get("valid_pixels"))
         flood = to_int(row.get("flood_pixels"))
         water = to_int(row.get("water_river_pixels"))
         rows.append(
             {
-                "region": region,
-                "tile_count": to_int(row.get("tile_count")),
-                "valid_pixels": valid,
-                "flood_pixels": flood,
-                "non_flood_pixels": max(valid - flood, 0),
+                "wilayah": region.replace("_", " "),
+                "piksel_valid": valid,
+                "piksel_banjir": flood,
+                "piksel_non_banjir": max(valid - flood, 0),
                 "water_river_pixels": water,
-                "flood_pct_of_valid": fmt_float(pct(flood, valid)),
-                "water_river_pct_of_valid": fmt_float(pct(water, valid)),
-                "s2_valid_pct_of_valid": fmt_float(pct(to_float(row.get("s2_valid_pixels")), valid)),
-                "status": "ok",
             }
         )
     return rows
@@ -62,38 +100,32 @@ def _label_percentage_rows(label_rows: list[dict[str, object]]) -> list[dict[str
     for row in label_rows:
         rows.append(
             {
-                "region": row["region"],
-                "valid_pixels": row["valid_pixels"],
-                "flood_pixels": row["flood_pixels"],
-                "flood_pct_of_valid": row["flood_pct_of_valid"],
-                "non_flood_pixels": row["non_flood_pixels"],
-                "non_flood_pct_of_valid": fmt_float(100.0 - float(row["flood_pct_of_valid"])),
-                "water_river_pixels": row["water_river_pixels"],
-                "water_river_pct_of_valid": row["water_river_pct_of_valid"],
-                "interpretation": _imbalance_label(float(row["flood_pct_of_valid"])),
+                "wilayah": row["wilayah"],
+                "banjir_dalam_valid_pct": fmt_float(pct(to_float(row["piksel_banjir"]), to_float(row["piksel_valid"])), 1),
+                "water_river_dalam_valid_pct": fmt_float(pct(to_float(row["water_river_pixels"]), to_float(row["piksel_valid"])), 1),
+                "rasio_non_banjir": fmt_float(to_float(row["piksel_non_banjir"]) / max(to_float(row["piksel_banjir"]), 1), 1),
             }
         )
     return rows
 
 
-def _tile_rows(config) -> list[dict[str, object]]:
-    summary = read_csv_row_map(config.dataset_root / "preprocessing_summary.csv")
+def _tile_rows(tile_stats: dict[str, dict[str, object]]) -> list[dict[str, object]]:
     rows = []
     for region in REGIONS:
-        row = summary[region]
-        total = to_int(row.get("tile_count"))
-        positive = to_int(row.get("positive_tile_count"))
-        background = to_int(row.get("background_tile_count"))
+        row = tile_stats[region]
+        total = to_int(row.get("total_tile"))
+        valid = to_int(row.get("valid_tile"))
+        positive = to_int(row.get("positive_tile"))
+        background = to_int(row.get("background_tile"))
         rows.append(
             {
-                "region": region,
-                "split": row.get("split", "cv"),
+                "wilayah": region.replace("_", " "),
                 "total_tile": total,
+                "tile_valid": valid,
                 "tile_positive": positive,
                 "tile_background": background,
-                "positive_tile_pct": fmt_float(pct(positive, total)),
-                "background_tile_pct": fmt_float(pct(background, total)),
-                "positive_to_background_ratio": fmt_float(positive / background if background else positive),
+                "tile_positive_pct": fmt_float(pct(positive, total), 2),
+                "tile_background_pct": fmt_float(pct(background, total), 2),
             }
         )
     return rows
@@ -111,16 +143,20 @@ def _figure_mask_panel(config):
     spec = _spec("Gambar 4.4")
     region = config.test_region
     label_dir = config.dataset_root / "labels_unosat_rasterized" / region
+    flood = read_raster(label_dir / "label_flood_binary.tif")
+    valid = read_raster(label_dir / "label_valid_mask.tif")
+    water = read_raster(label_dir / "label_water_river_mask.tif")
     panels = [
-        ("label_flood_binary", read_raster(label_dir / "label_flood_binary.tif")),
-        ("label_valid_mask", read_raster(label_dir / "label_valid_mask.tif")),
-        ("label_water_river_mask", read_raster(label_dir / "label_water_river_mask.tif")),
+        ("label_flood_binary", flood, "Blues"),
+        ("label_valid_mask", valid, "Greens"),
+        ("label_water_river_mask", water, "Blues"),
+        ("area flood within valid", flood.astype(bool) & valid.astype(bool), "Reds"),
     ]
     setup_style()
-    fig, axes = plt.subplots(1, 3, figsize=(12, 3.8))
-    for ax, (title, arr) in zip(axes, panels):
-        ax.imshow(arr, cmap="gray", vmin=0, vmax=1)
-        ax.set_title(title)
+    fig, axes = plt.subplots(1, 4, figsize=(13.6, 3.4))
+    for idx, (ax, (title, arr, cmap)) in enumerate(zip(axes, panels)):
+        ax.imshow(arr, cmap=cmap, vmin=0, vmax=1)
+        ax.text(0.5, -0.08, f"({chr(97 + idx)})", transform=ax.transAxes, ha="center", va="top", fontsize=10)
         ax.axis("off")
     path = config.figures_dir / spec.filename
     savefig(fig, path)
@@ -131,9 +167,12 @@ def _figure_flood_distribution(config, rows):
     spec = _spec("Gambar 4.5")
     setup_style()
     fig, ax = plt.subplots(figsize=(10, 4.8))
-    ax.bar([row["region"] for row in rows], [float(row["flood_pct_of_valid"]) for row in rows], color="#2563eb")
-    ax.set_ylabel("Flood pixels / valid mask (%)")
-    ax.set_title("Class imbalance label banjir per wilayah")
+    ax.bar(
+        [row["wilayah"] for row in rows],
+        [pct(to_float(row["piksel_banjir"]), to_float(row["piksel_valid"])) for row in rows],
+        color="#d9822b",
+    )
+    ax.set_ylabel("Flood pixels dalam valid mask (%)")
     ax.tick_params(axis="x", rotation=35)
     ax.grid(axis="y", alpha=0.25)
     path = config.figures_dir / spec.filename
@@ -151,14 +190,15 @@ def _figure_tile_examples(config):
         tile = load_npz(tile_path)
         x = np.asarray(tile["x"])
         panels = [
-            ("VV", normalize_image(x[0])),
-            ("HSV pseudo-RGB", hsv_to_rgb(x[2:5])),
-            ("HAND", normalize_image(x[6])),
-            ("Label", np.asarray(tile["y"])[0]),
+            ("VV", normalize_image(x[0]), "gray"),
+            ("HSV pseudo-RGB", hsv_to_display_rgb(x[2:5]), None),
+            ("HAND", normalize_image(x[6]), "viridis"),
+            ("Label", np.asarray(tile["y"])[0], "gray"),
         ]
-        for ax, (title, arr) in zip(axes[row_idx], panels):
-            ax.imshow(arr, cmap=None if arr.ndim == 3 else "gray")
-            ax.set_title(f"{label}: {title}")
+        for col_idx, (ax, (title, arr, cmap)) in enumerate(zip(axes[row_idx], panels)):
+            ax.imshow(arr, cmap=cmap, vmin=0 if cmap == "gray" else None, vmax=1 if cmap == "gray" else None)
+            ax.set_title(f"{label}: {title}", fontsize=8)
+            ax.text(0.5, -0.08, f"({chr(97 + row_idx * 4 + col_idx)})", transform=ax.transAxes, ha="center", va="top", fontsize=9)
             ax.axis("off")
     path = config.figures_dir / spec.filename
     savefig(fig, path)

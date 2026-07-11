@@ -28,6 +28,13 @@ class Bab4ManifestTests(unittest.TestCase):
             self.assertNotIn("copy_from_legacy", text, msg=str(path))
             self.assertNotIn("materialize_section", text, msg=str(path))
 
+    def test_table_4_1_generator_uses_feature_valid_mask(self):
+        root = Path(__file__).parents[1]
+        text = (root / "bab4" / "sections" / "s4_1_1.py").read_text(encoding="utf-8")
+
+        self.assertIn("masked_band_stats", text)
+        self.assertIn("feature_valid_mask.tif", text)
+
 
 if __name__ == "__main__":
     unittest.main()
