@@ -8,7 +8,7 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 
 from bab4.artifacts import ALL_ARTIFACTS
-from bab4.common import MODEL_KEYS, MODEL_LABELS, fmt_float, read_csv_rows, to_float, to_int
+from bab4.common import SPATIAL_CV_FOLDS, MODEL_KEYS, MODEL_LABELS, fmt_float, read_csv_rows, to_float, to_int
 from bab4.plots import savefig, setup_style
 from bab4.sections.base import section_result
 from bab4.writer import figure_result, missing_result, write_table, write_text_artifact
@@ -82,25 +82,27 @@ def generate_4_4_2(config):
 
 
 def generate_4_4_3(config):
-    metric_paths = [config.selected_training_run(model) / "metrics.csv" for model in MODEL_KEYS]
-    selected_source = _selected_training_source(config, "metrics.csv")
-    if not all(path.exists() for path in metric_paths):
+    source = "runs/{unet,procanet}/fold_*/grid_*/metrics.csv"
+    try:
+        selected_variants, metric_paths = _selected_cv_metric_paths(config)
+        source = _metric_paths_source(config, metric_paths)
+        artifacts = [
+            _training_curves_figure(config, metric_paths, source),
+            _narrative_4_4_3(config, selected_variants, source),
+        ]
+    except (OSError, ValueError) as exc:
         return section_result(
             "4.4.3",
             [
                 missing_result(
                     config,
                     _spec("Gambar 4.11"),
-                    source=selected_source,
-                    note="metrics.csv checkpoint terbaik spatial CV tidak lengkap",
+                    source=source,
+                    note=str(exc),
                 ),
-                _narrative_4_4_3(config),
+                _narrative_4_4_3(config, None, source, unavailable_note=str(exc)),
             ],
         )
-    artifacts = [
-        _training_curves_figure(config),
-        _narrative_4_4_3(config),
-    ]
     return section_result("4.4.3", artifacts)
 
 
@@ -228,6 +230,7 @@ def _grid_summary_rows(config) -> list[dict[str, object]]:
                 "learning_rate": lr,
                 "weight_decay": wd,
                 "folds_completed": len(fold_rows),
+                "mean_best_val_iou_raw": _mean(ious),
                 "mean_best_val_iou": fmt_float(_mean(ious)),
                 "std_best_val_iou": fmt_float(_std(ious)),
                 "mean_best_val_dice": fmt_float(_mean(dices)),
@@ -380,42 +383,163 @@ def _hyperparameter_figure(config, rows: list[dict[str, object]]):
     return figure_result(config, spec, path, source="runs/{unet,procanet}/fold_*/grid_*/metrics.csv")
 
 
-def _training_curves_figure(config):
+def _training_curves_figure(config, metric_paths: dict[str, list], source: str):
     spec = _spec("Gambar 4.11")
-    metrics = {model: read_csv_rows(config.selected_training_run(model) / "metrics.csv") for model in MODEL_KEYS}
+    fold_rows = {
+        model: [read_csv_rows(path) for path in metric_paths[model]]
+        for model in MODEL_KEYS
+    }
+    aggregates = {
+        model: {
+            metric: _aggregate_fold_metric(fold_rows[model], metric)
+            for metric in (
+                "train_loss",
+                "val_loss",
+                "train_iou",
+                "val_iou",
+                "train_dice",
+                "val_dice",
+                "lr",
+            )
+        }
+        for model in MODEL_KEYS
+    }
+    # Purple and orange remain distinct for common colour-vision deficiencies
+    # and preserve contrast in the translucent standard-deviation bands.
+    colors = {"unet": "#6A3D9A", "procanet": "#E66101"}
+
     setup_style()
-    fig, axes = plt.subplots(2, 2, figsize=(10.5, 7.0))
+    fig, axes = plt.subplots(2, 2, figsize=(11.4, 7.8))
+    # Panel labels sit below each axes, so they need dedicated space between
+    # rows rather than intruding into the plots beneath them.
+    fig.subplots_adjust(hspace=0.48, wspace=0.34)
     panels = [
-        ("loss", "Loss", "train_loss", "val_loss"),
-        ("iou", "IoU", "train_iou", "val_iou"),
-        ("dice", "Dice/F1", "train_dice", "val_dice"),
+        ("Loss", "train_loss", "val_loss"),
+        ("IoU", "train_iou", "val_iou"),
+        ("Dice/F1", "train_dice", "val_dice"),
     ]
-    for idx, (ax, (_, title, train_col, val_col)) in enumerate(zip(axes.ravel()[:3], panels)):
+    for idx, (ax, (title, train_metric, val_metric)) in enumerate(zip(axes.ravel()[:3], panels)):
         for model in MODEL_KEYS:
-            rows = metrics[model]
-            epochs = [to_int(row.get("epoch")) for row in rows]
-            ax.plot(epochs, [to_float(row.get(train_col)) for row in rows], linewidth=1.2, label=f"{MODEL_LABELS[model]} train")
-            if rows and val_col in rows[0]:
-                ax.plot(epochs, [to_float(row.get(val_col)) for row in rows], linestyle="--", linewidth=1.2, label=f"{MODEL_LABELS[model]} validation")
+            color = colors[model]
+            _plot_aggregate_series(
+                ax,
+                aggregates[model][train_metric],
+                color=color,
+                linestyle="-",
+                label=f"{MODEL_LABELS[model]} train",
+            )
+            _plot_aggregate_series(
+                ax,
+                aggregates[model][val_metric],
+                color=color,
+                linestyle="--",
+                label=f"{MODEL_LABELS[model]} validation",
+            )
         ax.set_xlabel("Epoch")
         ax.set_ylabel(title)
         ax.grid(alpha=0.25)
-        ax.text(0.5, -0.18, f"({chr(97 + idx)})", transform=ax.transAxes, ha="center", va="top", fontsize=9)
+        ax.text(0.5, -0.18, f"({chr(97 + idx)})", transform=ax.transAxes, ha="center", va="top", fontsize=20)
+
     ax_lr = axes.ravel()[3]
+    ax_active = ax_lr.twinx()
+    lr_handles = []
+    active_handles = []
     for model in MODEL_KEYS:
-        rows = metrics[model]
-        epochs = [to_int(row.get("epoch")) for row in rows]
-        ax_lr.plot(epochs, [to_float(row.get("lr")) for row in rows], linewidth=1.2, label=MODEL_LABELS[model])
+        color = colors[model]
+        lr_handle = _plot_aggregate_series(
+            ax_lr,
+            aggregates[model]["lr"],
+            color=color,
+            linestyle="-",
+            label=f"{MODEL_LABELS[model]} LR",
+        )
+        if lr_handle is not None:
+            lr_handles.append(lr_handle)
+        active_points = aggregates[model]["lr"]
+        active_handle = ax_active.step(
+            [int(point["epoch"]) for point in active_points],
+            [int(point["active_folds"]) for point in active_points],
+            where="post",
+            color=color,
+            linestyle=":",
+            linewidth=1.3,
+            alpha=0.9,
+            label=f"{MODEL_LABELS[model]} n",
+        )[0]
+        active_handles.append(active_handle)
+
     ax_lr.set_xlabel("Epoch")
     ax_lr.set_ylabel("Learning rate")
     ax_lr.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
     ax_lr.grid(alpha=0.25)
-    ax_lr.text(0.5, -0.18, "(d)", transform=ax_lr.transAxes, ha="center", va="top", fontsize=9)
+    ax_active.set_ylabel("Fold aktif (n)")
+    ax_active.set_ylim(0.5, len(SPATIAL_CV_FOLDS) + 0.5)
+    ax_active.set_yticks(range(1, len(SPATIAL_CV_FOLDS) + 1))
+    ax_active.grid(False)
+    ax_lr.text(0.5, -0.18, "(d)", transform=ax_lr.transAxes, ha="center", va="top", fontsize=20)
     axes.ravel()[0].legend(loc="upper right", fontsize=7)
-    ax_lr.legend(loc="upper right", fontsize=7)
+    ax_lr.legend(handles=lr_handles + active_handles, loc="upper right", fontsize=6.5, ncol=2)
     path = config.figures_dir / spec.filename
     savefig(fig, path)
-    return figure_result(config, spec, path, source=_selected_training_source(config, "metrics.csv"))
+    return figure_result(config, spec, path, source=source)
+
+
+def _plot_aggregate_series(ax, points: list[dict[str, object]], *, color: str, linestyle: str, label: str):
+    visible = [point for point in points if point["mean"] is not None]
+    if not visible:
+        return None
+    epochs = [int(point["epoch"]) for point in visible]
+    means = [float(point["mean"]) for point in visible]
+    stds = [float(point["std"]) for point in visible]
+    line = ax.plot(epochs, means, color=color, linestyle=linestyle, linewidth=1.5, label=label)[0]
+    ax.fill_between(
+        epochs,
+        [mean - std for mean, std in zip(means, stds)],
+        [mean + std for mean, std in zip(means, stds)],
+        color=color,
+        alpha=0.10,
+        linewidth=0,
+    )
+    return line
+
+
+def _aggregate_fold_metric(fold_rows: list[list[dict[str, str]]], metric: str) -> list[dict[str, object]]:
+    """Summarize one metric without extending a stopped fold into later epochs."""
+    values_by_epoch: dict[int, list[float]] = defaultdict(list)
+    for rows in fold_rows:
+        observed_epochs: set[int] = set()
+        for row in rows:
+            epoch = to_int(row.get("epoch"))
+            if epoch <= 0:
+                continue
+            if epoch in observed_epochs:
+                raise ValueError(f"epoch duplikat pada metrics.csv: {epoch}")
+            observed_epochs.add(epoch)
+            value = row.get(metric)
+            if value in (None, ""):
+                raise ValueError(f"kolom {metric} tidak lengkap pada epoch {epoch}")
+            try:
+                numeric_value = float(value)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"nilai {metric} tidak valid pada epoch {epoch}") from exc
+            if not math.isfinite(numeric_value):
+                raise ValueError(f"nilai {metric} tidak valid pada epoch {epoch}")
+            values_by_epoch[epoch].append(numeric_value)
+
+    summaries = []
+    for epoch, values in sorted(values_by_epoch.items()):
+        active_folds = len(values)
+        mean = _mean(values) if active_folds >= 2 else None
+        std = _std(values) if active_folds >= 2 else None
+        summaries.append(
+            {
+                "epoch": epoch,
+                "active_folds": active_folds,
+                "mean": mean,
+                "std": std,
+            }
+        )
+    return summaries
 
 
 def _draw_linear_blocks(ax, labels: list[str], *, color: str) -> None:
@@ -473,16 +597,82 @@ def _narrative_4_4_2(config, rows: list[dict[str, object]]):
     return write_text_artifact(config, spec, text, source="runs/{unet,procanet}/fold_*/grid_*/metrics.csv")
 
 
-def _narrative_4_4_3(config):
+def _narrative_4_4_3(config, selected_variants, source: str, *, unavailable_note: str | None = None):
     spec = _spec("Narasi 4.4.3")
+    if unavailable_note is not None:
+        text = f"""
+        Kurva stabilitas training 5-fold spatial cross-validation belum dapat dibuat karena
+        {unavailable_note}. Generator tidak menggantikan fold yang tidak tersedia dengan
+        nilai epoch terakhir agar tidak menghasilkan kesan stabilitas yang keliru.
+        """
+        return write_text_artifact(config, spec, text, source=source, note=unavailable_note)
+
+    assert selected_variants is not None
+    variant_description = "; ".join(
+        f"{MODEL_LABELS[model]} memakai lr={selected_variants[model]['learning_rate']} "
+        f"dan wd={selected_variants[model]['weight_decay']}"
+        for model in MODEL_KEYS
+    )
     text = f"""
-    Kurva stabilitas training dibuat dari `metrics.csv` milik checkpoint terbaik spatial CV
-    yang tercatat pada metadata evaluasi `{config.evaluation_run}`. U-Net menggunakan fold 0
-    dengan lr=5e-5 dan wd=1e-4, sedangkan ProCANet menggunakan fold 0 dengan lr=1e-4 dan
-    wd=1e-4. Generator tidak menjalankan training ulang; ia hanya membaca loss, IoU, Dice,
-    dan learning rate per epoch dari run checkpoint yang dipakai untuk evaluasi Aceh Utara.
+    Kurva stabilitas training dibuat dari lima `metrics.csv` spatial cross-validation pada
+    konfigurasi hyperparameter dengan mean best validation IoU tertinggi untuk masing-masing
+    model. {variant_description}. Pemilihan dan kurva ini tidak memakai metrik evaluasi Aceh
+    Utara; wilayah tersebut tetap menjadi data uji independen pada tahap evaluasi akhir.
+
+    Pada setiap epoch, loss, IoU, Dice, dan learning rate diringkas sebagai mean serta pita
+    plus/minus satu sample standard deviation dari fold yang masih aktif. Early stopping
+    menyebabkan jumlah fold aktif dapat berkurang; garis putus-putus pada sumbu kanan panel
+    learning rate menunjukkan nilai n tersebut. Tidak ada nilai yang diteruskan setelah suatu
+    fold berhenti. Mean dan pita standard deviation dihentikan saat n kurang dari dua, sehingga
+    bagian akhir tidak diklaim sebagai agregasi lima fold.
     """
-    return write_text_artifact(config, spec, text, source=_selected_training_source(config, "metrics.csv"))
+    return write_text_artifact(config, spec, text, source=source)
+
+
+def _selected_cv_metric_paths(config) -> tuple[dict[str, dict[str, object]], dict[str, list]]:
+    selected_variants = _best_complete_cv_variants(_grid_summary_rows(config))
+    metric_paths: dict[str, list] = {}
+    missing_paths = []
+    for model in MODEL_KEYS:
+        variant = selected_variants[model]
+        variant_dir = f"grid_lr_{variant['learning_rate']}_wd_{variant['weight_decay']}"
+        paths = [
+            config.runs_root / model / f"fold_{fold}" / variant_dir / "metrics.csv"
+            for fold in range(len(SPATIAL_CV_FOLDS))
+        ]
+        metric_paths[model] = paths
+        missing_paths.extend(path for path in paths if not path.exists())
+    if missing_paths:
+        missing = ", ".join(str(path.relative_to(config.root)) for path in missing_paths)
+        raise ValueError(f"metrics.csv konfigurasi terbaik tidak lengkap untuk 5-fold CV: {missing}")
+    return selected_variants, metric_paths
+
+
+def _best_complete_cv_variants(rows: list[dict[str, object]]) -> dict[str, dict[str, object]]:
+    selected = {}
+    expected_fold_count = len(SPATIAL_CV_FOLDS)
+    for model in MODEL_KEYS:
+        candidates = [
+            row
+            for row in rows
+            if row["model"] == MODEL_LABELS[model]
+            and to_int(row.get("folds_completed")) == expected_fold_count
+        ]
+        if not candidates:
+            raise ValueError(f"tidak ada konfigurasi lengkap {expected_fold_count}-fold untuk {MODEL_LABELS[model]}")
+        selected[model] = max(
+            candidates,
+            key=lambda row: float(row.get("mean_best_val_iou_raw", row["mean_best_val_iou"])),
+        )
+    return selected
+
+
+def _metric_paths_source(config, metric_paths: dict[str, list]) -> str:
+    return ";".join(
+        str(path.relative_to(config.root))
+        for model in MODEL_KEYS
+        for path in metric_paths[model]
+    )
 
 
 def _selected_training_source(config, filename: str) -> str:

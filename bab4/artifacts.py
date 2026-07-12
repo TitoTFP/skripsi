@@ -109,7 +109,7 @@ class ManifestTable:
         path.parent.mkdir(parents=True, exist_ok=True)
         fieldnames = list(self.records[0]) if self.records else []
         with path.open("w", newline="", encoding="utf-8") as handle:
-            writer = csv.DictWriter(handle, fieldnames=fieldnames)
+            writer = csv.DictWriter(handle, fieldnames=fieldnames, lineterminator="\n")
             if fieldnames:
                 writer.writeheader()
                 writer.writerows(self.records)
@@ -136,15 +136,15 @@ REPORT_TABLES: tuple[ArtifactSpec, ...] = (
     ArtifactSpec("Tabel 4.13", "table", "4.5", "Metrik checkpoint terbaik spatial CV pada wilayah uji Aceh Utara", "4_5_final_metrics.csv"),
     ArtifactSpec("Tabel 4.14", "table", "4.5", "Confusion matrix piksel pada wilayah uji Aceh Utara", "4_5_confusion_matrix_pixels.csv"),
     ArtifactSpec("Tabel 4.15", "table", "4.6", "Jumlah piksel error map pada tile Aceh_Utara_r001280_c005632", "4_6_error_map_tile_counts.csv"),
-    ArtifactSpec("Tabel 4.16", "table", "4.8", "Kondisi data sulit per wilayah", "4_8_difficult_data_case_studies.csv"),
-    ArtifactSpec("Tabel 4.17", "table", "4.8", "Contoh tile kondisi ekstrem", "4_8_extreme_tile_selection.csv"),
+    ArtifactSpec("Tabel 4.16", "table", "4.7", "Kondisi data sulit pada wilayah cross-validation", "4_7_difficult_data_case_studies.csv"),
+    ArtifactSpec("Tabel 4.17", "table", "4.7", "Contoh tile kondisi ekstrem out-of-fold", "4_7_extreme_tile_selection.csv"),
+    ArtifactSpec("Tabel 4.18", "table", "4.7", "Metrik out-of-fold pada kondisi data ekstrem", "4_7_oof_extreme_condition_metrics.csv"),
 )
 
 
 REPORT_FIGURES: tuple[ArtifactSpec, ...] = (
     ArtifactSpec("Gambar 4.1", "figure", "4.1.1", "Perbandingan tile Sentinel-2 valid dan kosong/hampir kosong", "4_1_1_s2_valid_vs_empty_comparison.png"),
     ArtifactSpec("Gambar 4.2", "figure", "4.1.1", "Visualisasi contoh channel input pada wilayah Aceh Utara", "4_1_1_channel_example_aceh_utara.png"),
-    ArtifactSpec("Gambar 4.3", "figure", "4.1.2", "Overlay OpenStreetMap terhadap stack preprocessing pada tile Aceh Utara", "4_1_2_osm_overlay_stack_aceh_utara.png"),
     ArtifactSpec("Gambar 4.4", "figure", "4.2", "Visualisasi mask UNOSAT pada wilayah Aceh Utara", "4_2_unosat_mask_panel_aceh_utara.png"),
     ArtifactSpec("Gambar 4.5", "figure", "4.2", "Class imbalance label banjir per wilayah", "4_2_flood_label_distribution.png"),
     ArtifactSpec("Gambar 4.6", "figure", "4.2", "Contoh tile positif dan background-only", "4_2_positive_background_tile_examples.png"),
@@ -156,10 +156,10 @@ REPORT_FIGURES: tuple[ArtifactSpec, ...] = (
     ArtifactSpec("Gambar 4.12", "figure", "4.5", "Perbandingan metrik checkpoint terbaik spatial CV pada wilayah uji Aceh Utara", "4_5_final_metrics_comparison.png"),
     ArtifactSpec("Gambar 4.13", "figure", "4.6", "Panel input, label, dan prediksi segmentasi pada tile Aceh Utara", "4_6_segmentation_panel_aceh_utara.png"),
     ArtifactSpec("Gambar 4.14", "figure", "4.6", "Error map TP/FP/FN/TN pada tile Aceh Utara", "4_6_error_map_aceh_utara.png"),
-    ArtifactSpec("Gambar 4.15", "figure", "4.8", "Kondisi data sulit per wilayah", "4_8_difficult_data_case_studies.png"),
-    ArtifactSpec("Gambar 4.16", "figure", "4.8", "Kasus Sentinel-2 kosong/hampir kosong pada tile Aceh Tamiang", "4_8_hsv_zero_tile_panel.png"),
-    ArtifactSpec("Gambar 4.17", "figure", "4.8", "Kasus topografi sulit atau kandidat radar shadow pada tile Aceh Tamiang", "4_8_topography_radar_shadow_case.png"),
-    ArtifactSpec("Gambar 4.18", "figure", "4.8", "Kasus badan air permanen pada tile Aceh Utara", "4_8_permanent_water_case.png"),
+    ArtifactSpec("Gambar 4.15", "figure", "4.7", "Kondisi data sulit pada wilayah cross-validation", "4_7_difficult_data_case_studies.png"),
+    ArtifactSpec("Gambar 4.16", "figure", "4.7", "Kasus OOF Sentinel-2 kosong/hampir kosong", "4_7_hsv_zero_tile_panel.png"),
+    ArtifactSpec("Gambar 4.17", "figure", "4.7", "Kasus OOF topografi sulit atau kandidat radar shadow", "4_7_topography_radar_shadow_case.png"),
+    ArtifactSpec("Gambar 4.18", "figure", "4.7", "Kasus OOF badan air permanen", "4_7_permanent_water_case.png"),
 )
 
 
@@ -173,8 +173,7 @@ NARRATIVES: tuple[ArtifactSpec, ...] = (
     ArtifactSpec("Narasi 4.4.3", "narrative", "4.4.3", "Interpretasi stabilitas training", "4_4_3_training_stability_interpretation.md"),
     ArtifactSpec("Narasi 4.5", "narrative", "4.5", "Interpretasi evaluasi checkpoint terbaik spatial CV", "4_5_final_evaluation_interpretation.md"),
     ArtifactSpec("Narasi 4.6", "narrative", "4.6", "Interpretasi visual spasial", "4_6_visual_spatial_interpretation.md"),
-    ArtifactSpec("Narasi 4.7", "narrative", "4.7", "Pembahasan efektivitas model", "4_7_unet_procanet_effectiveness_discussion.md"),
-    ArtifactSpec("Narasi 4.8", "narrative", "4.8", "Interpretasi data ekstrem dan keterbatasan", "4_8_data_extreme_limitations_interpretation.md"),
+    ArtifactSpec("Narasi 4.7", "narrative", "4.7", "Interpretasi ketahanan model pada kondisi ekstrem", "4_7_extreme_condition_oof_interpretation.md"),
 )
 
 

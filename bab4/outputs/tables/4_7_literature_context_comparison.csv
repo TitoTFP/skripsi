@@ -1,4 +1,0 @@
-comparison_axis,reference_context,bab4_evidence,interpretation
-baseline segmentation,U-Net encoder-decoder dengan skip connection,"IoU=0.850125, Dice=0.918992",baseline kuat untuk banjir yang kontras pada radar dan topografi
-attention fusion,ProCANet dual encoder dengan progressive cross-attention,"IoU=0.853774, Dice=0.92112",attention fusion menekan FP dan meningkatkan metrik agregat; recall U-Net hanya sedikit lebih tinggi
-operational trade-off,validasi wilayah held-out Aceh_Utara,precision/recall dihitung dari confusion matrix checkpoint terbaik spatial CV,"pilihan model perlu mempertimbangkan biaya FP dan FN, bukan hanya akurasi"

@@ -1,3 +1,0 @@
-model,loss,iou,dice_f1,accuracy,precision,recall,specificity
-U-Net,0.473,0.850,0.919,0.971,0.945,0.894,0.988
-ProCANet,0.462,0.854,0.921,0.972,0.951,0.893,0.990

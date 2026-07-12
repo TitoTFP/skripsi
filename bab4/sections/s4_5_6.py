@@ -287,8 +287,8 @@ def _figure_segmentation_panel(config, tile_path: Path, tile: dict[str, np.ndarr
     fig, axes = plt.subplots(2, 4, figsize=(10.5, 5.6))
     for idx, (ax, (title, arr, cmap)) in enumerate(zip(axes.ravel(), panels)):
         ax.imshow(arr, cmap=cmap, vmin=0 if cmap == "gray" else None, vmax=1 if cmap == "gray" else None)
-        ax.set_title(title, fontsize=8)
-        ax.text(0.5, -0.08, f"({chr(97 + idx)})", transform=ax.transAxes, ha="center", va="top", fontsize=9)
+        # ax.set_title(title, fontsize=8)
+        ax.text(0.5, -0.08, f"({chr(97 + idx)})", transform=ax.transAxes, ha="center", va="top", fontsize=20)
         ax.axis("off")
     path = config.figures_dir / spec.filename
     savefig(fig, path)
@@ -321,7 +321,7 @@ def _figure_error_map(config, tile_path: Path, tile: dict[str, np.ndarray], pred
         error[~truth & prediction & effective] = 2
         error[truth & ~prediction & effective] = 3
         ax.imshow(error, cmap=cmap, vmin=0, vmax=3)
-        ax.set_title(MODEL_LABELS[model])
+        ax.set_title(MODEL_LABELS[model], fontsize=10)
         ax.axis("off")
     fig.legend(handles=labels, loc="lower center", ncol=4, frameon=False)
     path = config.figures_dir / spec.filename

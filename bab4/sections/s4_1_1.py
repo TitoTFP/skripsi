@@ -4,6 +4,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.patches import Rectangle
 
 from bab4.artifacts import ALL_ARTIFACTS
 from bab4.common import REGIONS, fmt_float, pct, read_csv_row_map, to_float
@@ -155,6 +156,18 @@ def _figure_s2_valid_vs_empty(config):
             # ax.set_title(title, fontsize=8)
             _subfigure_label(ax, row_idx * 3 + col_idx)
             ax.axis("off")
+            ax.add_patch(
+                Rectangle(
+                    (0, 0),
+                    1,
+                    1,
+                    transform=ax.transAxes,
+                    fill=False,
+                    edgecolor="#374151",
+                    linewidth=1.4,
+                    clip_on=False,
+                )
+            )
     path = config.figures_dir / spec.filename
     savefig(fig, path)
     return figure_result(config, spec, path, source="dataset/tiles/7ch/by_region/*/*.npz")

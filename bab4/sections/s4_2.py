@@ -4,6 +4,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.patches import Rectangle
 
 from bab4.artifacts import ALL_ARTIFACTS
 from bab4.common import REGIONS, fmt_float, pct, to_float, to_int
@@ -156,7 +157,7 @@ def _figure_mask_panel(config):
     fig, axes = plt.subplots(1, 4, figsize=(13.6, 3.4))
     for idx, (ax, (title, arr, cmap)) in enumerate(zip(axes, panels)):
         ax.imshow(arr, cmap=cmap, vmin=0, vmax=1)
-        ax.text(0.5, -0.08, f"({chr(97 + idx)})", transform=ax.transAxes, ha="center", va="top", fontsize=10)
+        ax.text(0.5, -0.08, f"({chr(97 + idx)})", transform=ax.transAxes, ha="center", va="top", fontsize=20)
         ax.axis("off")
     path = config.figures_dir / spec.filename
     savefig(fig, path)
@@ -197,9 +198,21 @@ def _figure_tile_examples(config):
         ]
         for col_idx, (ax, (title, arr, cmap)) in enumerate(zip(axes[row_idx], panels)):
             ax.imshow(arr, cmap=cmap, vmin=0 if cmap == "gray" else None, vmax=1 if cmap == "gray" else None)
-            ax.set_title(f"{label}: {title}", fontsize=8)
-            ax.text(0.5, -0.08, f"({chr(97 + row_idx * 4 + col_idx)})", transform=ax.transAxes, ha="center", va="top", fontsize=9)
+            # ax.set_title(f"{label}: {title}", fontsize=8)
+            ax.text(0.5, -0.08, f"({chr(97 + row_idx * 4 + col_idx)})", transform=ax.transAxes, ha="center", va="top", fontsize=20)
             ax.axis("off")
+            ax.add_patch(
+                Rectangle(
+                    (0, 0),
+                    1,
+                    1,
+                    transform=ax.transAxes,
+                    fill=False,
+                    edgecolor="#374151",
+                    linewidth=1.4,
+                    clip_on=False,
+                )
+            )
     path = config.figures_dir / spec.filename
     savefig(fig, path)
     return figure_result(config, spec, path, source="dataset/tiles/7ch/by_region/Aceh_Utara/*.npz")

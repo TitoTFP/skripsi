@@ -268,9 +268,14 @@ class GeoTiffMosaic:
         if height <= 0 or width <= 0:
             return
         target = np.s_[row : row + height, col : col + width]
-        self.probability_sum[target] += prob[:height, :width]
-        self.count[target] += 1
-        self.effective_valid[target] = np.maximum(self.effective_valid[target], valid[:height, :width].astype(np.uint8))
+        tile_prob = prob[:height, :width]
+        tile_valid = valid[:height, :width]
+        # Only observations that are valid for the loss/evaluation are allowed
+        # to contribute to an overlap average.  Otherwise a zero-filled invalid
+        # tile can dilute a valid neighbouring prediction.
+        self.probability_sum[target] += tile_prob * tile_valid
+        self.count[target] += tile_valid.astype(np.uint16)
+        self.effective_valid[target] = np.maximum(self.effective_valid[target], tile_valid.astype(np.uint8))
 
     def finalize(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         covered = self.count > 0

@@ -37,9 +37,8 @@ Dokumen ini adalah turunan praktis dari `TODO_BAB_4_Lengkap.md`. Fokusnya hanya 
 | [x] | W | Confusion matrix TP, TN, FP, FN | Tabel | 4.5 | Menjelaskan karakter kesalahan model. |
 | [x] | W | Panel visual prediksi U-Net vs ProCANet | Gambar panel | 4.6 | Memperlihatkan hasil segmentasi secara spasial. |
 | [x] | SD | Error map TP/FP/FN/TN | Gambar | 4.6 | Membuat pembahasan false positive dan false negative lebih kuat. |
-| [x] | SD | Ringkasan U-Net vs ProCANet | Tabel | 4.7 | Merangkum trade-off arsitektur, metrik, FP, dan FN. |
-| [x] | SD | Studi kasus Sentinel-2 kosong/hampir kosong | Tabel/grafik | 4.8 | Menguji ketahanan model pada kondisi data ekstrem. |
-| [x] | O | Tabel mini ringkasan temuan BAB 4 | Tabel | 4.9 | Menutup BAB 4 dengan sintesis singkat. |
+| [ ] | SD | Metrik OOF kondisi data ekstrem | Tabel 4.18 | 4.7 | Membuktikan ketahanan model dengan prediksi out-of-fold, bukan hanya visualisasi input. |
+| [ ] | SD | Rincian OOF per wilayah dan panel kasus | Tabel tambahan/grafik | 4.7 | Menunjukkan variasi antarwilayah CV untuk S2 kosong, topografi sulit, dan badan air permanen. |
 
 ---
 
@@ -205,45 +204,15 @@ Catatan visual: grafik boleh berupa satu gambar multi-panel agar tidak terlalu b
 
 ---
 
-## 4.7 Pembahasan Efektivitas U-Net vs ProCANet
+## 4.7 Ketahanan Model pada Kondisi Data Ekstrem
 
 | Status | Prioritas | Output | Bentuk | Isi minimal | Sumber data/berkas |
 |---|---|---|---|---|---|
-| [x] | SD | Ringkasan perbandingan U-Net vs ProCANet | Tabel | Aspek, U-Net, ProCANet, interpretasi: strategi fusi, IoU, Dice, FP, FN, karakter prediksi, kelebihan, keterbatasan. | Tabel metrik, confusion matrix, visual 4.6 |
-| [x] | O | Diagram arsitektur tambahan | Diagram | Hanya jika diagram belum ditampilkan di 4.4.1. | Implementasi model |
-| [x] | O | Bar chart trade-off FP/FN | Grafik | Perbandingan FP dan FN untuk menjelaskan agresif/konservatif. | Confusion matrix |
-| [x] | O | Tabel komparasi literatur | Tabel | Penelitian, model, data, metrik, perbedaan konteks dengan penelitian ini. | Bab 2 dan hasil penelitian |
-| [x] | N | Pembahasan U-Net | Narasi | Jelaskan U-Net sebagai baseline fusi langsung yang sederhana/stabil. | Hasil evaluasi |
-| [x] | N | Pembahasan ProCANet | Narasi | Jelaskan ProCANet sebagai dual encoder + attention yang lebih selektif. | Hasil evaluasi |
-| [x] | N | Pembahasan trade-off | Narasi | Jangan memaksa ProCANet menang mutlak; bahas aspek unggul/kalah secara jujur. | Metrik + visual |
-| [x] | N | Komparasi dengan literatur | Narasi | Jelaskan apakah hasil mendukung, berbeda, atau memperluas studi sebelumnya. | Literatur Bab 2 |
-
----
-
-## 4.8 Ketahanan Model pada Kondisi Data Ekstrem
-
-| Status | Prioritas | Output | Bentuk | Isi minimal | Sumber data/berkas |
-|---|---|---|---|---|---|
-| [x] | SD | Wilayah Sentinel-2 kosong/hampir kosong | Tabel | Wilayah ekstrem, persentase S2 valid, IoU/Dice validasi jika tersedia, model yang lebih stabil, catatan interpretasi. | `s2_valid_mask`, metrics per fold/wilayah |
-| [x] | O | Contoh tile HSV=0 | Gambar | Tile dengan HSV kosong/hampir kosong, ditampilkan bersama VV/VH dan prediksi. | Tile wilayah ekstrem |
-| [x] | O | Studi kasus topografi sulit/radar shadow | Gambar | VV + Slope/HAND + prediksi + error map pada area curam. | Fitur topografi + prediksi |
-| [x] | O | Studi kasus badan air permanen | Gambar | `water_river_mask` dibandingkan dengan prediksi model. | Water/river mask + prediksi |
-| [x] | N | Peran SAR saat S2 tidak valid | Narasi | Jelaskan VV/VH sebagai sumber informasi utama ketika HSV tidak informatif. | Studi kasus ekstrem |
-| [x] | N | Peran Slope/HAND | Narasi | Jelaskan apakah topografi membantu mengurangi FP pada lereng/radar shadow. | Studi kasus topografi |
-| [x] | N | Keterbatasan UNOSAT | Narasi | UNOSAT adalah proxy label, tidak pixel-perfect, ada potensi beda waktu akuisisi. | Hasil + desain label |
-| [x] | N | Keterbatasan generalisasi | Narasi | Generalisasi masih terbatas pada wilayah studi Sumatra. | Pembahasan akhir |
-
----
-
-## 4.9 Ringkasan Temuan Bab 4
-
-| Status | Prioritas | Output | Bentuk | Isi minimal | Sumber data/berkas |
-|---|---|---|---|---|---|
-| [x] | O | Tabel mini temuan utama | Tabel | Aspek, temuan utama, implikasi. | Ringkasan 4.1–4.8 |
-| [x] | N | Jawaban tujuan penelitian pertama | Narasi | Penerapan U-Net dan ProCANet dengan input fusi multisensor berhasil dilakukan. | Hasil implementasi + training |
-| [x] | N | Jawaban tujuan penelitian kedua | Narasi | Perbandingan performa U-Net dan ProCANet berdasarkan metrik dan karakter kesalahan. | Evaluasi akhir |
-| [x] | N | Ringkasan keterbatasan | Narasi | Sentinel-2 kosong, UNOSAT proxy label, generalisasi terbatas. | 4.8 |
-| [x] | N | Transisi ke BAB 5 | Narasi | Arahkan pembaca menuju kesimpulan dan saran. | Sintesis BAB 4 |
+| [ ] | SD | Kondisi data sulit per wilayah CV | Tabel 4.16 | S2 valid, proporsi banjir/air permanen, slope, dan HAND pada sepuluh wilayah OOF. | Tile dan raster CV |
+| [ ] | SD | Contoh tile OOF per kondisi | Tabel 4.17 + Gambar 4.16–4.18 | Tile CV, fold, mask kondisi, label, dan prediksi OOF U-Net/ProCANet. | Mosaik OOF dan tile CV |
+| [ ] | SD | Metrik OOF mikro | Tabel 4.18 | TP, TN, FP, FN, IoU, Dice, precision, recall, specificity, dan FPR. | `runs/oof_extreme_conditions/` |
+| [ ] | SD | Rincian metrik per wilayah | Tabel tambahan | Fold, konfigurasi, jumlah piksel, dan metrik untuk menilai dominasi wilayah. | `runs/oof_extreme_conditions/` |
+| [ ] | N | Batas interpretasi OOF | Narasi | Tegaskan OOF bukan evaluasi independen Aceh Utara dan IoU/Dice dapat tidak terdefinisi pada subset tanpa banjir. | Tabel 4.18 |
 
 ---
 
@@ -268,9 +237,8 @@ Catatan visual: grafik boleh berupa satu gambar multi-panel agar tidak terlalu b
 | [x] | W | Hasil grid search ProCANet | 4.4.2 |
 | [x] | W | Metrik final U-Net vs ProCANet | 4.5 |
 | [x] | W | Confusion matrix piksel | 4.5 |
-| [x] | SD | Ringkasan perbandingan U-Net vs ProCANet | 4.7 |
-| [x] | SD | Studi kasus Sentinel-2 kosong/hampir kosong | 4.8 |
-| [x] | O | Ringkasan temuan utama BAB 4 | 4.9 |
+| [ ] | SD | Metrik OOF kondisi data ekstrem | 4.7 |
+| [ ] | SD | Panel prediksi OOF kondisi ekstrem | 4.7 |
 
 ## 3.2 Gambar, Diagram, dan Grafik
 
@@ -311,9 +279,7 @@ Catatan visual: grafik boleh berupa satu gambar multi-panel agar tidak terlalu b
 | [x] | 4.4.3 | Interpretasi stabilitas training, early stopping, dan scheduler. |
 | [x] | 4.5 | Interpretasi metrik final, akurasi sebagai pelengkap, dan trade-off FP/FN. |
 | [x] | 4.6 | Interpretasi visual TP/FP/FN, bukan hanya deskripsi gambar. |
-| [x] | 4.7 | Pembahasan jujur apakah ProCANet unggul atau tidak, beserta alasan. |
-| [x] | 4.8 | Pembahasan keterbatasan UNOSAT, Sentinel-2 kosong, dan generalisasi model. |
-| [x] | 4.9 | Sintesis yang menjawab dua tujuan penelitian. |
+| [ ] | 4.7 | Ketahanan model berdasar metrik OOF pada Sentinel-2 kosong, topografi/radar shadow, dan badan air permanen. |
 
 ---
 

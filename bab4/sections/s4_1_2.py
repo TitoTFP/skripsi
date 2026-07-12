@@ -1,17 +1,10 @@
 from __future__ import annotations
 
-from pathlib import Path
-
-import matplotlib.pyplot as plt
-
 from bab4.artifacts import ALL_ARTIFACTS
 from bab4.common import CHANNELS_7CH, REGIONS
-from bab4.plots import hsv_to_display_rgb, normalize_image, plot_osm_cache_lines, savefig, setup_style
-from bab4.raster import load_npz, open_dataset, read_stack_rgb, raster_metadata
+from bab4.raster import open_dataset, raster_metadata
 from bab4.sections.base import section_result
-from bab4.writer import figure_result, write_table, write_text_artifact
-
-OSM_TILE = "Aceh_Utara_r001280_c005632"
+from bab4.writer import write_table, write_text_artifact
 
 
 def _spec(artifact_id: str):
@@ -22,7 +15,6 @@ def generate_4_1_2(config):
     artifacts = [
         _table_alignment(config),
         _table_stack_layers(config),
-        _figure_osm_overlay(config),
         _narrative(config),
     ]
     return section_result("4.1.2", artifacts)
@@ -94,55 +86,6 @@ def _source_layer_name(channel: str) -> str:
         "Slope": "slope_norm.tif",
         "HAND": "hand_norm.tif",
     }[channel]
-
-
-def _figure_osm_overlay(config):
-    spec = _spec("Gambar 4.3")
-    region = config.test_region
-    tile_path = config.dataset_root / "tiles" / "7ch" / "by_region" / region / f"{OSM_TILE}.npz"
-    tile = load_npz(tile_path)
-    x = tile["x"]
-    row0 = int(tile["row"])
-    col0 = int(tile["col"])
-    size = int(x.shape[-1])
-    raw_ds = _open_raw_reference(config)
-    panels = [
-        ("OSM + VV", normalize_image(x[0]), "gray"),
-        ("OSM + VH", normalize_image(x[1]), "gray"),
-        ("OSM + HSV/pseudo-RGB", hsv_to_display_rgb(x[2:5]), None),
-        ("OSM + Slope", normalize_image(x[5]), "magma"),
-        ("OSM + HAND", normalize_image(x[6]), "viridis"),
-        ("OSM + label UNOSAT", tile["y"][0], "Blues"),
-    ]
-    cache_paths = sorted((config.root / "cache").glob("*.json")) + sorted((config.root / "notebooks" / "cache").glob("*.json"))
-    setup_style()
-    fig, axes = plt.subplots(2, 3, figsize=(9.6, 6.4))
-    extent = [col0, col0 + size, row0 + size, row0]
-    plotted = 0
-    for idx, (ax, (title, arr, cmap)) in enumerate(zip(axes.ravel(), panels)):
-        if arr.ndim == 3:
-            ax.imshow(arr, extent=extent)
-        else:
-            ax.imshow(arr, cmap=cmap, extent=extent, vmin=0 if title.endswith("UNOSAT") else None, vmax=1 if title.endswith("UNOSAT") else None)
-        plotted += plot_osm_cache_lines(ax, cache_paths, raw_ds)
-        ax.set_xlim(col0, col0 + size)
-        ax.set_ylim(row0 + size, row0)
-        ax.set_title(title, fontsize=8)
-        ax.text(0.5, -0.08, f"({chr(97 + idx)})", transform=ax.transAxes, ha="center", va="top", fontsize=9)
-        ax.axis("off")
-    if plotted == 0:
-        fig.text(0.5, 0.02, "OSM cache tidak tersedia; panel menampilkan crop tile stack.", ha="center")
-    path = config.figures_dir / spec.filename
-    savefig(fig, path)
-    return figure_result(config, spec, path, source=f"{tile_path.relative_to(config.root)};cache/*.json;dataset/satelit raw/Aceh Utara")
-
-
-def _open_raw_reference(config):
-    raw_dir = config.dataset_root / "satelit raw" / "Aceh Utara"
-    candidates = sorted(raw_dir.glob("S1_Aceh_Utara_*.tif"))
-    if not candidates:
-        return open_dataset(config.dataset_root / "features_preprocessed" / "Aceh_Utara" / "vv_norm.tif")
-    return open_dataset(candidates[0])
 
 
 def _narrative(config):

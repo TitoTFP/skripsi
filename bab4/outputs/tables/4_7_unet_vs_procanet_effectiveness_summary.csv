@@ -1,3 +1,0 @@
-model,architecture_character,iou,dice,accuracy,precision,recall,false_positive_pixels,false_negative_pixels,dominant_error,interpretation,iou_delta_procanet_minus_unet
-U-Net,baseline encoder-decoder,0.850125,0.918992,0.970946,0.944904,0.894463,969495,1961822,false negative,U-Net lebih konservatif terhadap prediksi banjir dibanding cakupan recall,0.003649
-ProCANet,dual encoder with progressive cross-attention,0.853774,0.92112,0.971829,0.951369,0.892735,848277,1993943,false negative,ProCANet lebih konservatif terhadap prediksi banjir dibanding cakupan recall,0.003649

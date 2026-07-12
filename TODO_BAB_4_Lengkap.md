@@ -27,9 +27,7 @@ Prinsip umum penulisan BAB 4:
 | 4.4.3 Stabilitas Pelatihan | Kurva loss, IoU, Dice, dan learning rate | Grafik training curve |
 | 4.5 Evaluasi Akhir pada Wilayah Uji Aceh Utara | Performa final U-Net vs ProCANet | Tabel metrik + confusion matrix |
 | 4.6 Analisis Visual dan Spasial Hasil Segmentasi | Pola prediksi, FP, FN, dan error spasial | Panel prediksi + error map |
-| 4.7 Pembahasan Efektivitas U-Net vs ProCANet | Interpretasi arsitektur dan trade-off | Tabel ringkasan perbandingan + pembahasan literatur |
-| 4.8 Ketahanan Model pada Kondisi Data Ekstrem | S2 kosong, radar shadow, badan air permanen | Studi kasus visual + tabel ekstrem |
-| 4.9 Ringkasan Temuan Bab 4 | Sintesis hasil utama sebelum BAB 5 | Narasi ringkas, tabel mini opsional |
+| 4.7 Ketahanan Model pada Kondisi Data Ekstrem | S2 kosong, radar shadow, badan air permanen | Metrik OOF + studi kasus visual OOF |
 
 ---
 
@@ -446,7 +444,7 @@ Contoh narasi:
 
 ---
 
-# 4.7 Pembahasan Efektivitas U-Net vs ProCANet
+## Catatan historis - subbab efektivitas lama dihapus
 
 Tujuan subbab ini adalah menjawab kontribusi utama penelitian: apakah Progressive Cross-Attention memberi manfaat dibanding baseline U-Net.
 
@@ -490,23 +488,23 @@ Contoh narasi:
 
 ---
 
-# 4.8 Ketahanan Model pada Kondisi Data Ekstrem
+# 4.7 Ketahanan Model pada Kondisi Data Ekstrem
 
-Tujuan subbab ini adalah membuat pembahasan lebih kuat secara ilmiah karena membahas reliabilitas model pada kondisi sulit, bukan hanya skor akhir.
+Tujuan subbab ini adalah mengukur reliabilitas pada kondisi sulit dengan prediksi out-of-fold. Setiap wilayah CV dinilai hanya oleh checkpoint fold ketika wilayah tersebut menjadi validasi; hasil ini bukan evaluasi independen Aceh Utara.
 
 | Isi yang perlu dibahas | Output visual/tabel yang disarankan |
 |---|---|
-| Studi kasus Sentinel-2 kosong atau hampir kosong. Jelaskan apakah model masih mampu memprediksi banjir dengan mengandalkan SAR dan DEMNAS. | **Tabel wajib**: wilayah ekstrem, persentase S2 valid, IoU/Dice validasi jika tersedia, catatan performa. **Gambar opsional**: contoh tile HSV=0. |
+| Sentinel-2 kosong atau hampir kosong. | **Tabel 4.18**: TP, TN, FP, FN, IoU, Dice, precision, recall, specificity, FPR dari agregasi mikro OOF. |
 | Bahas peran SAR pada kondisi awan. Jelaskan bahwa VV/VH menjadi sumber informasi utama saat HSV tidak informatif. | **Narasi + contoh visual VV/VH**. |
-| Studi kasus topografi sulit: lereng curam atau radar shadow. Jelaskan apakah Slope dan HAND membantu mengurangi false positive pada area yang secara radar tampak gelap. | **Gambar opsional**: VV + Slope/HAND + prediksi + error map pada area curam. |
-| Studi kasus badan air permanen atau sungai. Jelaskan potensi kebingungan antara banjir sementara dan air permanen. | **Gambar opsional**: `water_river_mask` dibandingkan dengan prediksi. |
+| Studi kasus topografi sulit: lereng curam atau radar shadow. | **Gambar 4.17**: panel OOF VV/VH/HSV, Slope, HAND, mask kondisi, label, dan dua prediksi. |
+| Studi kasus badan air permanen atau sungai. | **Gambar 4.18** dan FP, specificity, FPR; metrik kelas-positif tidak diterapkan jika subset tidak memuat banjir. |
 | Bahas keterbatasan UNOSAT sebagai proxy label. Label mungkin tidak pixel-perfect, ada perbedaan waktu akuisisi citra, dan batas poligon bisa tidak setajam batas genangan aktual. | **Narasi wajib**. Tidak perlu visual. |
 | Bahas keterbatasan model: generalisasi masih diuji pada wilayah Sumatra tertentu, bukan seluruh Indonesia; hasil dapat berubah pada wilayah urban padat, hutan lebat, atau banjir sangat dangkal. | **Narasi wajib** di akhir subbab. |
 
-Checklist 4.8:
+Checklist 4.7:
 
-- [x] Membuat tabel wilayah dengan S2 valid rendah/kosong.
-- [x] Membuat studi kasus visual wilayah ekstrem.
+- [x] Membuat Tabel 4.16--4.18 dan rincian OOF per wilayah.
+- [x] Membuat studi kasus visual OOF wilayah ekstrem.
 - [x] Membahas peran SAR ketika HSV tidak valid.
 - [x] Membahas peran Slope/HAND pada radar shadow atau lereng curam.
 - [x] Membahas potensi bias badan air permanen.
@@ -530,7 +528,7 @@ Contoh narasi:
 
 ---
 
-# 4.9 Ringkasan Temuan Bab 4
+## Catatan historis - subbab 4.9 dihapus
 
 Tujuan subbab ini adalah menutup BAB 4 dengan sintesis yang langsung mengarah ke kesimpulan BAB 5.
 
@@ -544,7 +542,7 @@ Tujuan subbab ini adalah menutup BAB 4 dengan sintesis yang langsung mengarah ke
 | Ringkas evaluasi akhir: model mana yang unggul pada IoU/Dice dan bagaimana trade-off FP/FN. | **Tabel mini opsional**: model terbaik per aspek. |
 | Ringkas implikasi: fusi Sentinel-1, Sentinel-2 HSV, dan DEMNAS relevan untuk segmentasi banjir di wilayah tropis, tetapi kualitas label dan kondisi data tetap membatasi interpretasi hasil. | **Narasi penutup saja**. |
 
-Checklist 4.9:
+Checklist lama (dihapus):
 
 - [ ] Menjawab tujuan penelitian pertama: penerapan U-Net dan ProCANet dengan input fusi multisensor.
 - [ ] Menjawab tujuan penelitian kedua: perbandingan performa U-Net dan ProCANet.
@@ -594,9 +592,8 @@ Bagian ini adalah checklist praktis supaya BAB 4 tidak terasa kosong.
 | Wajib | Tabel confusion matrix TP, TN, FP, FN | 4.5 | [x] | `outputs/bab4/tables/4_5_confusion_matrix_pixels.csv` |
 | Wajib | Panel visual prediksi U-Net vs ProCANet | 4.6 | [x] | `outputs/bab4/figures/4_6_segmentation_panel_aceh_utara.png` |
 | Sangat disarankan | Error map TP/FP/FN/TN | 4.6 | [x] | `outputs/bab4/figures/4_6_error_map_aceh_utara.png` |
-| Sangat disarankan | Tabel ringkasan U-Net vs ProCANet | 4.7 | [x] | `outputs/bab4/tables/4_7_unet_vs_procanet_effectiveness_summary.csv` |
-| Sangat disarankan | Tabel studi kasus Sentinel-2 kosong/hampir kosong | 4.8 | [x] | `outputs/bab4/tables/4_8_difficult_data_case_studies.csv` |
-| Opsional | Tabel mini ringkasan temuan BAB 4 | 4.9 | [x] | `outputs/bab4/tables/4_9_bab4_findings_summary.csv` |
+| Sangat disarankan | Tabel metrik OOF kondisi data ekstrem | 4.7 | [ ] | `bab4/outputs/tables/4_7_oof_extreme_condition_metrics.csv` |
+| Sangat disarankan | Tabel rincian OOF per wilayah | 4.7 | [ ] | `bab4/outputs/tables/4_7_oof_extreme_condition_metrics_by_region.csv` |
 
 ---
 

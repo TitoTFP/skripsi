@@ -1,0 +1,61 @@
+kondisi,model,fold_oof,wilayah,konfigurasi,piksel_kondisi,piksel_dievaluasi,tp,tn,fp,fn,iou,dice,precision,recall,specificity,fpr
+Sentinel-2 kosong/hampir kosong,U-Net,0,Pidie,grid_lr_5e-5_wd_1e-4,0,0,0,0,0,0,–,–,–,–,–,–
+Topografi sulit/kandidat radar shadow,U-Net,0,Pidie,grid_lr_5e-5_wd_1e-4,2425467,2314431,41,2314348,1,41,0.493976,0.66129,0.97619,0.5,1.0,0.0
+Badan air permanen/sungai,U-Net,0,Pidie,grid_lr_5e-5_wd_1e-4,85310,82650,0,64540,18110,0,–,–,–,–,0.780883,0.219117
+Sentinel-2 kosong/hampir kosong,ProCANet,0,Pidie,grid_lr_1e-4_wd_1e-4,0,0,0,0,0,0,–,–,–,–,–,–
+Topografi sulit/kandidat radar shadow,ProCANet,0,Pidie,grid_lr_1e-4_wd_1e-4,2425467,2314431,39,2314349,0,43,0.47561,0.644628,1.0,0.47561,1.0,0.0
+Badan air permanen/sungai,ProCANet,0,Pidie,grid_lr_1e-4_wd_1e-4,85310,82650,0,62124,20526,0,–,–,–,–,0.751652,0.248348
+Sentinel-2 kosong/hampir kosong,U-Net,0,Pidie Jaya,grid_lr_5e-5_wd_1e-4,0,0,0,0,0,0,–,–,–,–,–,–
+Topografi sulit/kandidat radar shadow,U-Net,0,Pidie Jaya,grid_lr_5e-5_wd_1e-4,934905,927674,44,927260,7,363,0.10628,0.19214,0.862745,0.108108,0.999992,8e-06
+Badan air permanen/sungai,U-Net,0,Pidie Jaya,grid_lr_5e-5_wd_1e-4,37930,37930,0,28422,9508,0,–,–,–,–,0.749328,0.250672
+Sentinel-2 kosong/hampir kosong,ProCANet,0,Pidie Jaya,grid_lr_1e-4_wd_1e-4,0,0,0,0,0,0,–,–,–,–,–,–
+Topografi sulit/kandidat radar shadow,ProCANet,0,Pidie Jaya,grid_lr_1e-4_wd_1e-4,934905,927674,44,927264,3,363,0.107317,0.193833,0.93617,0.108108,0.999997,3e-06
+Badan air permanen/sungai,ProCANet,0,Pidie Jaya,grid_lr_1e-4_wd_1e-4,37930,37930,0,27563,10367,0,–,–,–,–,0.726681,0.273319
+Sentinel-2 kosong/hampir kosong,U-Net,1,Aceh Besar,grid_lr_5e-5_wd_1e-4,1833100,1833100,8817,1788885,5590,29808,0.199412,0.332516,0.611994,0.228272,0.996885,0.003115
+Topografi sulit/kandidat radar shadow,U-Net,1,Aceh Besar,grid_lr_5e-5_wd_1e-4,2043811,2020932,32,2019748,105,1047,0.027027,0.052632,0.233577,0.029657,0.999948,5.2e-05
+Badan air permanen/sungai,U-Net,1,Aceh Besar,grid_lr_5e-5_wd_1e-4,92179,92179,0,59807,32372,0,–,–,–,–,0.648814,0.351186
+Sentinel-2 kosong/hampir kosong,ProCANet,1,Aceh Besar,grid_lr_1e-4_wd_1e-4,1833100,1833100,12076,1789271,5204,26549,0.275525,0.432019,0.698843,0.312647,0.9971,0.0029
+Topografi sulit/kandidat radar shadow,ProCANet,1,Aceh Besar,grid_lr_1e-4_wd_1e-4,2043811,2020932,26,2019844,9,1053,0.023897,0.046679,0.742857,0.024096,0.999996,4e-06
+Badan air permanen/sungai,ProCANet,1,Aceh Besar,grid_lr_1e-4_wd_1e-4,92179,92179,0,59551,32628,0,–,–,–,–,0.646037,0.353963
+Sentinel-2 kosong/hampir kosong,U-Net,1,Banda Aceh,grid_lr_5e-5_wd_1e-4,0,0,0,0,0,0,–,–,–,–,–,–
+Topografi sulit/kandidat radar shadow,U-Net,1,Banda Aceh,grid_lr_5e-5_wd_1e-4,0,0,0,0,0,0,–,–,–,–,–,–
+Badan air permanen/sungai,U-Net,1,Banda Aceh,grid_lr_5e-5_wd_1e-4,14595,14595,0,1858,12737,0,–,–,–,–,0.127304,0.872696
+Sentinel-2 kosong/hampir kosong,ProCANet,1,Banda Aceh,grid_lr_1e-4_wd_1e-4,0,0,0,0,0,0,–,–,–,–,–,–
+Topografi sulit/kandidat radar shadow,ProCANet,1,Banda Aceh,grid_lr_1e-4_wd_1e-4,0,0,0,0,0,0,–,–,–,–,–,–
+Badan air permanen/sungai,ProCANet,1,Banda Aceh,grid_lr_1e-4_wd_1e-4,14595,14595,0,575,14020,0,–,–,–,–,0.039397,0.960603
+Sentinel-2 kosong/hampir kosong,U-Net,2,Aceh Tamiang,grid_lr_5e-5_wd_1e-4,21522552,21522552,739104,20118255,528227,136966,0.526316,0.689655,0.583197,0.843659,0.974416,0.025584
+Topografi sulit/kandidat radar shadow,U-Net,2,Aceh Tamiang,grid_lr_5e-5_wd_1e-4,1298304,1296234,366,1291502,4023,343,0.077346,0.143586,0.08339,0.51622,0.996895,0.003105
+Badan air permanen/sungai,U-Net,2,Aceh Tamiang,grid_lr_5e-5_wd_1e-4,222826,222821,0,56257,166564,0,–,–,–,–,0.252476,0.747524
+Sentinel-2 kosong/hampir kosong,ProCANet,2,Aceh Tamiang,grid_lr_1e-4_wd_1e-4,21522552,21522552,661803,20335144,311338,214267,0.557351,0.715768,0.680069,0.755423,0.984921,0.015079
+Topografi sulit/kandidat radar shadow,ProCANet,2,Aceh Tamiang,grid_lr_1e-4_wd_1e-4,1298304,1296234,3,1295382,143,706,0.003521,0.007018,0.020548,0.004231,0.99989,0.00011
+Badan air permanen/sungai,ProCANet,2,Aceh Tamiang,grid_lr_1e-4_wd_1e-4,222826,222821,0,152362,70459,0,–,–,–,–,0.683787,0.316213
+Sentinel-2 kosong/hampir kosong,U-Net,2,Aceh Timur,grid_lr_5e-5_wd_1e-4,11122062,11122062,335091,10239397,379276,168298,0.379636,0.550342,0.469074,0.66567,0.964282,0.035718
+Topografi sulit/kandidat radar shadow,U-Net,2,Aceh Timur,grid_lr_5e-5_wd_1e-4,3073295,3044723,1,3044231,377,114,0.002033,0.004057,0.002646,0.008696,0.999876,0.000124
+Badan air permanen/sungai,U-Net,2,Aceh Timur,grid_lr_5e-5_wd_1e-4,421669,418480,0,177520,240960,0,–,–,–,–,0.424202,0.575798
+Sentinel-2 kosong/hampir kosong,ProCANet,2,Aceh Timur,grid_lr_1e-4_wd_1e-4,11122062,11122062,335484,10274362,344311,167905,0.395758,0.567087,0.493508,0.666451,0.967575,0.032425
+Topografi sulit/kandidat radar shadow,ProCANet,2,Aceh Timur,grid_lr_1e-4_wd_1e-4,3073295,3044723,3,3044265,343,112,0.00655,0.013015,0.008671,0.026087,0.999887,0.000113
+Badan air permanen/sungai,ProCANet,2,Aceh Timur,grid_lr_1e-4_wd_1e-4,421669,418480,0,156679,261801,0,–,–,–,–,0.3744,0.6256
+Sentinel-2 kosong/hampir kosong,U-Net,3,Bireuen,grid_lr_5e-5_wd_1e-4,0,0,0,0,0,0,–,–,–,–,–,–
+Topografi sulit/kandidat radar shadow,U-Net,3,Bireuen,grid_lr_5e-5_wd_1e-4,925848,919955,366,918417,238,934,0.237971,0.384454,0.60596,0.281538,0.999741,0.000259
+Badan air permanen/sungai,U-Net,3,Bireuen,grid_lr_5e-5_wd_1e-4,119182,119182,0,100530,18652,0,–,–,–,–,0.8435,0.1565
+Sentinel-2 kosong/hampir kosong,ProCANet,3,Bireuen,grid_lr_1e-4_wd_1e-4,0,0,0,0,0,0,–,–,–,–,–,–
+Topografi sulit/kandidat radar shadow,ProCANet,3,Bireuen,grid_lr_1e-4_wd_1e-4,925848,919955,422,918498,157,878,0.289636,0.449175,0.728843,0.324615,0.999829,0.000171
+Badan air permanen/sungai,ProCANet,3,Bireuen,grid_lr_1e-4_wd_1e-4,119182,119182,0,102361,16821,0,–,–,–,–,0.858863,0.141137
+Sentinel-2 kosong/hampir kosong,U-Net,3,Langsa,grid_lr_5e-5_wd_1e-4,2039546,2039546,65741,1864705,70678,38422,0.376004,0.546516,0.481905,0.631136,0.963481,0.036519
+Topografi sulit/kandidat radar shadow,U-Net,3,Langsa,grid_lr_5e-5_wd_1e-4,133,105,0,105,0,0,–,–,–,–,1.0,0.0
+Badan air permanen/sungai,U-Net,3,Langsa,grid_lr_5e-5_wd_1e-4,67228,65932,0,34841,31091,0,–,–,–,–,0.528438,0.471562
+Sentinel-2 kosong/hampir kosong,ProCANet,3,Langsa,grid_lr_1e-4_wd_1e-4,2039546,2039546,55114,1872722,62661,49049,0.330372,0.496661,0.46796,0.529113,0.967623,0.032377
+Topografi sulit/kandidat radar shadow,ProCANet,3,Langsa,grid_lr_1e-4_wd_1e-4,133,105,0,105,0,0,–,–,–,–,1.0,0.0
+Badan air permanen/sungai,ProCANet,3,Langsa,grid_lr_1e-4_wd_1e-4,67228,65932,0,36884,29048,0,–,–,–,–,0.559425,0.440575
+Sentinel-2 kosong/hampir kosong,U-Net,4,Agam,grid_lr_5e-5_wd_1e-4,15350683,15350683,175390,14820039,266290,88964,0.330523,0.496832,0.397097,0.663466,0.982349,0.017651
+Topografi sulit/kandidat radar shadow,U-Net,4,Agam,grid_lr_5e-5_wd_1e-4,1417218,923584,0,923515,7,62,0.0,0.0,0.0,0.0,0.999992,8e-06
+Badan air permanen/sungai,U-Net,4,Agam,grid_lr_5e-5_wd_1e-4,0,0,0,0,0,0,–,–,–,–,–,–
+Sentinel-2 kosong/hampir kosong,ProCANet,4,Agam,grid_lr_1e-4_wd_1e-4,15350683,15350683,171970,14822749,263580,92384,0.325741,0.49141,0.394834,0.650529,0.982529,0.017471
+Topografi sulit/kandidat radar shadow,ProCANet,4,Agam,grid_lr_1e-4_wd_1e-4,1417218,923584,3,923168,354,59,0.007212,0.01432,0.008403,0.048387,0.999617,0.000383
+Badan air permanen/sungai,ProCANet,4,Agam,grid_lr_1e-4_wd_1e-4,0,0,0,0,0,0,–,–,–,–,–,–
+Sentinel-2 kosong/hampir kosong,U-Net,4,Pasaman Barat,grid_lr_5e-5_wd_1e-4,31912629,31912629,168560,31436660,155377,152032,0.354141,0.523049,0.520348,0.525777,0.995082,0.004918
+Topografi sulit/kandidat radar shadow,U-Net,4,Pasaman Barat,grid_lr_5e-5_wd_1e-4,1153070,909183,3,909046,25,109,0.021898,0.042857,0.107143,0.026786,0.999972,2.8e-05
+Badan air permanen/sungai,U-Net,4,Pasaman Barat,grid_lr_5e-5_wd_1e-4,0,0,0,0,0,0,–,–,–,–,–,–
+Sentinel-2 kosong/hampir kosong,ProCANet,4,Pasaman Barat,grid_lr_1e-4_wd_1e-4,31912629,31912629,179604,31399846,192191,140988,0.350253,0.518797,0.483073,0.560226,0.993916,0.006084
+Topografi sulit/kandidat radar shadow,ProCANet,4,Pasaman Barat,grid_lr_1e-4_wd_1e-4,1153070,909183,29,908786,285,83,0.073048,0.13615,0.092357,0.258929,0.999686,0.000314
+Badan air permanen/sungai,ProCANet,4,Pasaman Barat,grid_lr_1e-4_wd_1e-4,0,0,0,0,0,0,–,–,–,–,–,–

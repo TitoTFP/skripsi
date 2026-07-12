@@ -1,13 +1,13 @@
 # BAB 4 Validation Report
 
-- Generated at: 2026-07-11T13:38:45
+- Generated at: 2026-07-12T09:05:57
 - Output root: `/home/nozomi/Productive/skripsi/bab4/outputs`
 - Offline mode: `True`
 - No retraining: `True`
 
 ## Status Counts
 
-- `exists`: 49
+- `exists`: 9
 
 ## Non-Existing Artifacts
 

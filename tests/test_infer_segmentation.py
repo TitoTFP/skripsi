@@ -125,6 +125,31 @@ class InferSegmentationTests(unittest.TestCase):
             self.assertEqual(prediction[3, 0], 255)
             self.assertEqual(valid[3, 0], 0)
 
+    def test_mosaic_excludes_invalid_observation_from_overlap_average(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            reference = Path(tmp) / "reference.tif"
+            create_reference(reference, width=2, height=2)
+            mosaic = GeoTiffMosaic(reference, threshold=0.5)
+            mosaic.add_tile(
+                row=0,
+                col=0,
+                probability=np.array([[[0.9, 0.1], [0.1, 0.1]]], dtype=np.float32),
+                effective_valid_mask=np.array([[[True, False], [False, False]]]),
+            )
+            mosaic.add_tile(
+                row=0,
+                col=0,
+                probability=np.full((1, 2, 2), 0.1, dtype=np.float32),
+                effective_valid_mask=np.ones((1, 2, 2), dtype=bool),
+            )
+
+            probability, prediction, valid = mosaic.finalize()
+
+            self.assertAlmostEqual(float(probability[0, 0]), 0.5)
+            self.assertEqual(prediction[0, 0], 1)
+            self.assertAlmostEqual(float(probability[0, 1]), 0.1)
+            self.assertEqual(valid[0, 1], 1)
+
     def test_write_geotiff_copies_reference_grid_and_nodata(self):
         with tempfile.TemporaryDirectory() as tmp:
             reference = Path(tmp) / "reference.tif"

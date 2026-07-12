@@ -1,4 +1,0 @@
-kasus,tile,piksel_valid,flood_pct_of_valid,s2_valid_pct_of_valid,water_river_pct_of_valid,dark_vv_pct_of_valid,slope_mean_valid,hand_mean_valid
-Sentinel-2 kosong/hampir kosong,Aceh_Tamiang_r001024_c003840,262144,56.2164,0.0,56.2164,20.0001,0.0556,0.5239
-topografi/radar shadow,Aceh_Tamiang_r006501_c002304,217448,0.0,0.0,0.0,20.0002,0.7187,0.8691
-badan air permanen,Aceh_Utara_r001280_c005632,262144,94.2734,95.8847,79.6059,20.0001,0.0271,0.4439
