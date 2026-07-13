@@ -6,6 +6,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 from osgeo import gdal
+from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
 from bab4.artifacts import ALL_ARTIFACTS, ArtifactSpec
@@ -210,16 +211,32 @@ def _figure_difficult_cases(config, rows: list[dict[str, object]]):
     ax.axvline(1.0, color="#555555", linestyle="--", linewidth=0.9)
     ax.set_xlabel("Piksel Sentinel-2 valid pada tile valid (%)")
     ax.set_ylabel("Piksel label banjir pada tile valid (%)")
-    ax.legend(
+    size_handles = [
+        Line2D(
+            [],
+            [],
+            marker="o",
+            linestyle="",
+            markersize=np.sqrt(35 + value * 12),
+            markerfacecolor="#777777",
+            markeredgecolor="white",
+            label=f"{value:g}%",
+        )
+        for value in (0.0, 5.0, 10.0)
+    ]
+    legend = ax.legend(
         handles=[
             Patch(facecolor="#6A3D9A", label="Sentinel-2 valid ≤ 1%"),
             Patch(facecolor="#E66101", label="Sentinel-2 valid > 1%"),
+            Line2D([], [], linestyle="", label="Water/River"),
+            *size_handles,
         ],
-        title="Kondisi Sentinel-2",
         loc="lower right",
         fontsize=8,
-        title_fontsize=8,
     )
+    for text in legend.get_texts():
+        if text.get_text() == "Water/River":
+            text.set_weight("bold")
     ax.set_xlim(-3, 103)
     ax.grid(alpha=0.25)
     path = config.figures_dir / spec.filename

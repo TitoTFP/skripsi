@@ -1,0 +1,3 @@
+model,loss_tile_rata_rata_batch,iou,dice_f1,accuracy,precision,recall,specificity,evaluated_unique_pixels,unit_evaluasi
+U-Net,0.472528,0.850898,0.919444,0.972336,0.943901,0.896221,0.988611,26305235,piksel unik mosaik dalam effective_valid_mask
+ProCANet,0.461800,0.853908,0.921198,0.973051,0.949893,0.894185,0.989914,26305235,piksel unik mosaik dalam effective_valid_mask

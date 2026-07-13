@@ -1,3 +1,4 @@
+import csv
 import tempfile
 import unittest
 from pathlib import Path
@@ -40,6 +41,23 @@ class Bab4SmokeTests(unittest.TestCase):
             self.assertTrue(manifest.paths_startwith(str(config.output_root)))
             for row in manifest:
                 self.assertNotIn("/outputs/bab4/", str(row["source"]))
+
+            with (config.tables_dir / "4_5_confusion_matrix_pixels.csv").open(newline="") as handle:
+                confusion = list(csv.DictReader(handle))
+            with (config.tables_dir / "4_5_final_metrics.csv").open(newline="") as handle:
+                metrics = list(csv.DictReader(handle))
+            self.assertEqual([int(row["evaluated_unique_pixels"]) for row in confusion], [26305235, 26305235])
+            self.assertEqual([row["iou"] for row in metrics], ["0.850898", "0.853908"])
+            self.assertEqual([row["dice_f1"] for row in metrics], ["0.919444", "0.921198"])
+            self.assertEqual(
+                [(int(row["tp"]), int(row["tn"]), int(row["fp"]), int(row["fn"])) for row in confusion],
+                [(4152973, 21424542, 246824, 480896), (4143537, 21452796, 218570, 490332)],
+            )
+            for row in confusion:
+                self.assertEqual(
+                    int(row["tp"]) + int(row["tn"]) + int(row["fp"]) + int(row["fn"]),
+                    int(row["evaluated_unique_pixels"]),
+                )
 
 
 if __name__ == "__main__":
