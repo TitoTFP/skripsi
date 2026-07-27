@@ -1,6 +1,7 @@
 import csv
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -14,7 +15,7 @@ from scripts.evaluate_oof_extreme_conditions import (
     update_stats,
 )
 from bab4.config import Bab4Config, resolve_repo_root
-from bab4.sections.s4_7 import generate_4_7
+from bab4.sections.s4_8 import generate_4_8
 
 
 class OofExtremeConditionTests(unittest.TestCase):
@@ -78,15 +79,18 @@ class OofExtremeConditionTests(unittest.TestCase):
     def test_bab4_generator_marks_oof_artifacts_missing_without_results(self):
         root = resolve_repo_root(Path(__file__).parents[1])
         with tempfile.TemporaryDirectory() as tmp:
-            config = Bab4Config.from_repo(root, output_root=Path(tmp) / "bab4_outputs")
+            config = replace(
+                Bab4Config.from_repo(root, output_root=Path(tmp) / "bab4_outputs"),
+                runs_root=Path(tmp) / "empty_runs",
+            )
             config.reset_output_dirs()
-            result = generate_4_7(config)
+            result = generate_4_8(config)
             artifacts = {artifact.spec.artifact_id: artifact for artifact in result.artifacts}
 
-            self.assertEqual(artifacts["Tabel 4.16"].status, "exists")
-            self.assertEqual(artifacts["Tabel 4.18"].status, "missing_source")
-            self.assertEqual(artifacts["Gambar 4.16"].status, "missing_source")
-            self.assertIn("evaluasi OOF", artifacts["Tabel 4.18"].note)
+            self.assertEqual(artifacts["Tabel 4.18"].status, "exists")
+            self.assertEqual(artifacts["Tabel 4.20"].status, "missing_source")
+            self.assertEqual(artifacts["Gambar 4.18"].status, "missing_source")
+            self.assertIn("evaluasi OOF", artifacts["Tabel 4.20"].note)
 
 
 if __name__ == "__main__":

@@ -46,6 +46,7 @@ Thumbs.db
 *.log
 tmp/
 temp/
+.pi-subagents/
 runs/*
 !runs/final/
 runs/final/*
@@ -57,6 +58,9 @@ outputs/
 !bab4/outputs/**
 infer/
 
+# Large generated modality-evaluation intermediates
+bab4/evaluation/modality_masking/**/*.npz
+bab4/evaluation/modality_masking/**/*.tif
 
 # Model checkpoints and weights
 *.pt
@@ -78,6 +82,7 @@ dataset/features_preprocessed/
 dataset/labels_unosat_rasterized/
 dataset/tiles/
 dataset/**/zip_output/
+dataset/batas admin indo/
 dataset/unosat/*.zip
 dataset/unosat/*.gdb/
 geotiff/
@@ -98,9 +103,11 @@ geotiff/
 *.prj
 *.cpg
 
-
 # Documents
 docs/
+
+# Presentation working files
+ppt/
 
 # Tool configurations
 .antigravitycli/

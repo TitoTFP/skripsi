@@ -1,0 +1,6 @@
+fold,wilayah_validasi,wilayah_training,final_test
+0,"Pidie, Pidie Jaya","Aceh Besar, Banda Aceh, Aceh Tamiang, Aceh Timur, Bireuen, Langsa, Agam, Pasaman Barat",Aceh Utara
+1,"Aceh Besar, Banda Aceh","Pidie, Pidie Jaya, Aceh Tamiang, Aceh Timur, Bireuen, Langsa, Agam, Pasaman Barat",Aceh Utara
+2,"Aceh Tamiang, Aceh Timur","Pidie, Pidie Jaya, Aceh Besar, Banda Aceh, Bireuen, Langsa, Agam, Pasaman Barat",Aceh Utara
+3,"Bireuen, Langsa","Pidie, Pidie Jaya, Aceh Besar, Banda Aceh, Aceh Tamiang, Aceh Timur, Agam, Pasaman Barat",Aceh Utara
+4,"Agam, Pasaman Barat","Pidie, Pidie Jaya, Aceh Besar, Banda Aceh, Aceh Tamiang, Aceh Timur, Bireuen, Langsa",Aceh Utara

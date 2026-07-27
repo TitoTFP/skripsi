@@ -1,0 +1,8 @@
+band,nama_layer,sumber_layer,ukuran_raster,resolusi_piksel,crs_proyeksi
+1,VV,vv_norm.tif,5824 x 8101,10 x 10,EPSG:32647
+2,VH,vh_norm.tif,5824 x 8101,10 x 10,EPSG:32647
+3,Hue,hue.tif,5824 x 8101,10 x 10,EPSG:32647
+4,Saturation,saturation.tif,5824 x 8101,10 x 10,EPSG:32647
+5,Value,value.tif,5824 x 8101,10 x 10,EPSG:32647
+6,Slope,slope_norm.tif,5824 x 8101,10 x 10,EPSG:32647
+7,HAND,hand_norm.tif,5824 x 8101,10 x 10,EPSG:32647

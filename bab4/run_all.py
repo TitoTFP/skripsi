@@ -14,6 +14,7 @@ from bab4.sections.s4_3 import generate_4_3
 from bab4.sections.s4_4 import generate_4_4_1, generate_4_4_2, generate_4_4_3
 from bab4.sections.s4_5_6 import generate_4_5, generate_4_6
 from bab4.sections.s4_7 import generate_4_7
+from bab4.sections.s4_8 import generate_4_8
 
 SECTION_GENERATORS = {
     "4.1.1": generate_4_1_1,
@@ -26,6 +27,7 @@ SECTION_GENERATORS = {
     "4.5": generate_4_5,
     "4.6": generate_4_6,
     "4.7": generate_4_7,
+    "4.8": generate_4_8,
 }
 
 SECTION_GROUPS = {
@@ -33,6 +35,7 @@ SECTION_GROUPS = {
     "4.4": ("4.4.1", "4.4.2", "4.4.3"),
     "4.5-4.6": ("4.5", "4.6"),
     "4.7": ("4.7",),
+    "4.8": ("4.8",),
 }
 
 

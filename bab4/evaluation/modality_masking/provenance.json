@@ -1,0 +1,17 @@
+{
+  "checkpoints": {
+    "unet": "/home/nozomi/Productive/skripsi/runs/unet/fold_0/grid_lr_5e-5_wd_1e-4/best.pt",
+    "procanet": "/home/nozomi/Productive/skripsi/runs/procanet/fold_0/grid_lr_1e-4_wd_1e-4/best.pt"
+  },
+  "test_region": "Aceh_Utara",
+  "threshold": 0.5,
+  "input_scenarios": [
+    "all",
+    "sentinel1",
+    "sentinel2",
+    "demnas"
+  ],
+  "max_batches": null,
+  "evaluation_unit": "unique mosaic pixels in effective_valid_mask",
+  "method": "modality masking at inference; no retraining"
+}

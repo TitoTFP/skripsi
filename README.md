@@ -537,6 +537,45 @@ Ran 58 tests
 OK
 ```
 
+### Analisis sensitivitas modality masking
+
+Analisis ini memakai checkpoint U-Net dan ProCANet input penuh tanpa training ulang.
+Channel yang tidak tersedia dinolkan sesudah tile dimuat dan sebelum forward pass:
+
+| Skenario | Channel dipertahankan |
+| --- | --- |
+| `all` | VV, VH, Hue, Saturation, Value, Slope, HAND |
+| `sentinel1` | VV, VH |
+| `sentinel2` | Hue, Saturation, Value |
+| `demnas` | Slope, HAND |
+
+Jalankan delapan inference pada Aceh Utara:
+
+```bash
+uv run python -m scripts.evaluate_modality_masking \
+  --test-region Aceh_Utara \
+  --output-dir bab4/evaluation/modality_masking
+```
+
+Atau satu skenario:
+
+```bash
+uv run python -m scripts.infer_segmentation \
+  --architecture unet \
+  --checkpoint runs/unet/fold_0/grid_lr_5e-5_wd_1e-4/best.pt \
+  --region Aceh_Utara \
+  --input-scenario sentinel1 \
+  --output-dir bab4/evaluation/modality_masking/unet/sentinel1/eval_test
+```
+
+Hasil utama semua skenario memakai threshold `0.5` dan valid mask yang sama.
+Skenario Sentinel-2 juga menulis `metrics_s2_valid_only.csv/json` sebagai analisis
+tambahan pada piksel `s2_valid_mask=1`. Hasil ini adalah sensitivitas model integrasi
+terhadap masking input, bukan performa model unimodal. Nilai nol bukan input netral
+sempurna karena dapat memiliki makna fisik pada beberapa channel.
+
+Artefak laporan dibuat melalui pipeline BAB 4 ke `bab4/outputs/{tables,figures,narratives}`.
+
 ### Training
 
 Baseline U-Net:

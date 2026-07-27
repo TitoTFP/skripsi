@@ -1,0 +1,54 @@
+{
+  "architecture": "unet",
+  "base_channels": 32,
+  "checkpoint": "/home/nozomi/Productive/skripsi/runs/unet/fold_0/grid_lr_5e-5_wd_1e-4/best.pt",
+  "complete": true,
+  "input_scenario": "sentinel1",
+  "max_batches": null,
+  "metrics": [
+    {
+      "accuracy": 0.9081387221553596,
+      "batches": 247,
+      "dice": 0.6789711300533646,
+      "fn": 8787987,
+      "fnr": 0.4727549539821756,
+      "fp": 480068,
+      "fpr": 0.005832936243591878,
+      "iou": 0.513971454750109,
+      "loss": 2.3601802868640376,
+      "precision": 0.9533051615290977,
+      "recall": 0.5272450460178244,
+      "region": "Aceh_Utara",
+      "specificity": 0.9941670637564082,
+      "tn": 81822906,
+      "tp": 9800897
+    },
+    {
+      "accuracy": 0.9081387221553596,
+      "batches": 247,
+      "dice": 0.6789711300533646,
+      "fn": 8787987,
+      "fnr": 0.4727549539821756,
+      "fp": 480068,
+      "fpr": 0.005832936243591878,
+      "iou": 0.513971454750109,
+      "loss": 2.3601802868640376,
+      "precision": 0.9533051615290977,
+      "recall": 0.5272450460178244,
+      "region": "aggregate",
+      "specificity": 0.9941670637564082,
+      "tn": 81822906,
+      "tp": 9800897
+    }
+  ],
+  "regions": [
+    "Aceh_Utara"
+  ],
+  "save_predictions": true,
+  "threshold": 0.5,
+  "tiles_processed_by_region": {
+    "Aceh_Utara": 493
+  },
+  "water_river_as_flood": false,
+  "write_geotiff": true
+}

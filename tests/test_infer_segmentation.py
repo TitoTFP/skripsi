@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 import numpy as np
-import torch
+import torch  # type: ignore[import-not-found]
 from osgeo import gdal
 
 from scripts.infer_segmentation import (
@@ -13,6 +13,7 @@ from scripts.infer_segmentation import (
     resolve_checkpoint_settings,
     write_geotiff,
 )
+from training.modality_masking import apply_modality_mask  # type: ignore[import-not-found]
 
 
 def create_reference(path: Path, width: int = 4, height: int = 4) -> None:
@@ -46,6 +47,7 @@ class InferSegmentationTests(unittest.TestCase):
         self.assertEqual(args.regions, ["Aceh_Utara", "Pidie"])
         self.assertTrue(args.write_geotiff)
         self.assertEqual(args.threshold, 0.6)
+        self.assertEqual(args.input_scenario, "all")
 
     def test_parse_args_omitted_region(self):
         args = parse_args(
@@ -85,6 +87,72 @@ class InferSegmentationTests(unittest.TestCase):
         self.assertEqual(architecture, "unet")
         self.assertEqual(base_channels, 16)
 
+    def test_parse_args_accepts_input_scenario(self):
+        args = parse_args(
+            [
+                "--checkpoint",
+                "runs/unet/fold_0/best.pt",
+                "--output-dir",
+                "runs/inference",
+                "--input-scenario",
+                "sentinel2",
+            ]
+        )
+
+        self.assertEqual(args.input_scenario, "sentinel2")
+
+    def test_modality_masking_preserves_shape_values_dtype_and_source(self):
+        source = torch.arange(7 * 2 * 3, dtype=torch.float32).reshape(1, 7, 2, 3)
+        original = source.clone()
+
+        sentinel1 = apply_modality_mask(source, "sentinel1")
+        sentinel2 = apply_modality_mask(source, "sentinel2")
+        demnas = apply_modality_mask(source, "demnas")
+        all_features = apply_modality_mask(source, "all")
+        assert isinstance(sentinel1, torch.Tensor)
+        assert isinstance(sentinel2, torch.Tensor)
+        assert isinstance(demnas, torch.Tensor)
+        assert isinstance(all_features, torch.Tensor)
+
+        self.assertEqual(sentinel1.shape, source.shape)
+        self.assertEqual(sentinel1.dtype, source.dtype)
+        self.assertEqual(sentinel1.device, source.device)
+        self.assertTrue(torch.equal(sentinel1[:, :2], source[:, :2]))
+        self.assertEqual(int(torch.count_nonzero(sentinel1[:, 2:])), 0)
+        self.assertEqual(int(torch.count_nonzero(sentinel2[:, :2])), 0)
+        self.assertTrue(torch.equal(sentinel2[:, 2:5], source[:, 2:5]))
+        self.assertEqual(int(torch.count_nonzero(sentinel2[:, 5:])), 0)
+        self.assertEqual(int(torch.count_nonzero(demnas[:, :5])), 0)
+        self.assertTrue(torch.equal(demnas[:, 5:], source[:, 5:]))
+        self.assertTrue(torch.equal(all_features, source))
+        self.assertTrue(torch.equal(source, original))
+        self.assertIsNot(all_features, source)
+
+    def test_modality_masking_handles_procanet_encoder_inputs(self):
+        features = {
+            "encoder1": torch.ones(1, 7, 2, 2),
+            "encoder2": torch.ones(1, 2, 2, 2),
+        }
+
+        sentinel1 = apply_modality_mask(features, "sentinel1")
+        sentinel2 = apply_modality_mask(features, "sentinel2")
+        demnas = apply_modality_mask(features, "demnas")
+        assert isinstance(sentinel1, dict)
+        assert isinstance(sentinel2, dict)
+        assert isinstance(demnas, dict)
+
+        self.assertTrue(torch.equal(sentinel1["encoder2"], features["encoder2"]))
+        self.assertEqual(int(torch.count_nonzero(sentinel2["encoder2"])), 0)
+        self.assertEqual(int(torch.count_nonzero(demnas["encoder2"])), 0)
+        self.assertEqual(int(torch.count_nonzero(sentinel2["encoder1"][:, :2])), 0)
+        self.assertEqual(int(torch.count_nonzero(demnas["encoder1"][:, :5])), 0)
+
+    def test_modality_masking_rejects_invalid_scenario_and_shape(self):
+        with self.assertRaises(ValueError):
+            apply_modality_mask(torch.ones(1, 7, 2, 2), "invalid")
+        with self.assertRaises(ValueError):
+            apply_modality_mask(torch.ones(1, 3, 2, 2), "sentinel2")
+
     def test_inference_stats_ignore_invalid_pixels(self):
         stats = InferenceStats()
         logits = torch.tensor([[[[10.0, 10.0], [-10.0, -10.0]]]])
@@ -98,6 +166,11 @@ class InferSegmentationTests(unittest.TestCase):
         self.assertEqual(summary["iou"], 1.0)
         self.assertEqual(summary["dice"], 1.0)
         self.assertEqual(summary["accuracy"], 1.0)
+        self.assertEqual(summary["precision"], 1.0)
+        self.assertEqual(summary["recall"], 1.0)
+        self.assertEqual(summary["specificity"], 1.0)
+        self.assertEqual(summary["fpr"], 0.0)
+        self.assertEqual(summary["fnr"], 0.0)
 
     def test_mosaic_averages_overlapping_probabilities_and_marks_uncovered_nodata(self):
         with tempfile.TemporaryDirectory() as tmp:

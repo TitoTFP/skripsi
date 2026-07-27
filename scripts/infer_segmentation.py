@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 import numpy as np
-import torch
+import torch  # type: ignore[import-not-found]
 from osgeo import gdal
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
@@ -18,6 +18,7 @@ from scripts.train_segmentation import build_model, resolve_device
 from training.datasets import FloodTileDataset
 from training.losses import masked_bce_dice_loss
 from training.metrics import masked_binary_stats
+from training.modality_masking import INPUT_SCENARIOS, apply_modality_mask
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -41,6 +42,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--architecture", choices=("unet", "procanet"), default=None)
     parser.add_argument("--base-channels", type=int, default=32)
+    parser.add_argument("--input-scenario", choices=INPUT_SCENARIOS, default="all")
     parser.add_argument("--water-river", "--water_river", dest="water_river_as_flood", action="store_true")
     parser.add_argument("--no-save-predictions", action="store_true")
     parser.add_argument("--write-geotiff", action="store_true")
@@ -73,6 +75,7 @@ def main() -> None:
 
     region_summaries = []
     total_stats = InferenceStats()
+    total_s2_valid_stats = InferenceStats() if args.input_scenario == "sentinel2" else None
     for region in regions:
         region_summary = infer_region(
             model=model,
@@ -83,10 +86,15 @@ def main() -> None:
         )
         region_summaries.append(region_summary)
         total_stats.merge(region_summary.pop("_stats"))
+        s2_valid_stats = region_summary.pop("_s2_valid_stats", None)
+        if total_s2_valid_stats is not None and s2_valid_stats is not None:
+            total_s2_valid_stats.merge(s2_valid_stats)
 
     aggregate = {"region": "aggregate", **total_stats.summary()}
     rows = region_summaries + [aggregate]
     write_metrics(output_dir, rows, args, architecture, base_channels)
+    if total_s2_valid_stats is not None:
+        write_s2_valid_only_metrics(output_dir, total_s2_valid_stats.summary(), args)
 
 
 def resolve_checkpoint_settings(
@@ -136,11 +144,19 @@ class InferenceStats:
         iou_den = tp + fp + fn
         dice_den = (2 * tp) + fp + fn
         total = tp + tn + fp + fn
+        precision_den = tp + fp
+        recall_den = tp + fn
+        specificity_den = tn + fp
         return {
             "loss": self.total_loss / max(self.batches, 1),
             "iou": tp / iou_den if iou_den else 0.0,
             "dice": (2 * tp) / dice_den if dice_den else 0.0,
             "accuracy": (tp + tn) / total if total else 0.0,
+            "precision": tp / precision_den if precision_den else 0.0,
+            "recall": tp / recall_den if recall_den else 0.0,
+            "specificity": tn / specificity_den if specificity_den else 0.0,
+            "fpr": fp / specificity_den if specificity_den else 0.0,
+            "fnr": fn / recall_den if recall_den else 0.0,
             "tp": tp,
             "tn": tn,
             "fp": fp,
@@ -179,18 +195,32 @@ def infer_region(
         total = min(total, args.max_batches)
 
     stats = InferenceStats()
+    s2_valid_stats = InferenceStats() if args.input_scenario == "sentinel2" else None
+    processed_tiles = 0
     mosaic = GeoTiffMosaic(FEATURE_ROOT / region / "stack_7ch.tif", threshold=args.threshold) if args.write_geotiff else None
     prediction_dir = args.output_dir / "predictions" / region
     if not args.no_save_predictions:
         prediction_dir.mkdir(parents=True, exist_ok=True)
 
     for batch in tqdm(iterator, total=total, desc=f"infer {region}", dynamic_ncols=True, leave=True):
-        features = _to_device(batch["features"], device)
+        features = apply_modality_mask(_to_device(batch["features"], device), args.input_scenario)
         y = batch["y"].to(device)
         valid_mask = _effective_valid_mask(batch, device)
         logits = model(features)
         loss = masked_bce_dice_loss(logits, y, valid_mask)
         stats.update(logits, y, valid_mask, float(loss.detach().cpu()), threshold=args.threshold)
+        if s2_valid_stats is not None:
+            s2_valid_mask = (batch.get("auxiliary_masks") or {}).get("s2_valid_mask")
+            if s2_valid_mask is not None:
+                valid_only_mask = valid_mask & s2_valid_mask.to(device).bool()
+                valid_only_loss = masked_bce_dice_loss(logits, y, valid_only_mask)
+                s2_valid_stats.update(
+                    logits,
+                    y,
+                    valid_only_mask,
+                    float(valid_only_loss.detach().cpu()),
+                    threshold=args.threshold,
+                )
 
         probability = torch.sigmoid(logits).detach().cpu().numpy()
         prediction = (probability >= args.threshold).astype(np.uint8)
@@ -201,6 +231,7 @@ def infer_region(
         cols = _metadata_sequence(batch["metadata"], "col")
         paths = _metadata_sequence(batch["metadata"], "path")
         regions = _metadata_sequence(batch["metadata"], "region")
+        processed_tiles += len(paths)
 
         for idx, source_path in enumerate(paths):
             tile_name = Path(str(source_path)).name
@@ -233,7 +264,10 @@ def infer_region(
         write_geotiff(reference_path, geotiff_dir / f"{region}_prediction.tif", prediction, gdal.GDT_Byte, PREDICTION_NODATA)
         write_geotiff(reference_path, geotiff_dir / f"{region}_effective_valid_mask.tif", effective_valid, gdal.GDT_Byte, 0)
 
-    return {"region": region, **stats.summary(), "_stats": stats}
+    result = {"region": region, **stats.summary(), "tiles_processed": processed_tiles, "_stats": stats}
+    if s2_valid_stats is not None:
+        result["_s2_valid_stats"] = s2_valid_stats
+    return result
 
 
 class GeoTiffMosaic:
@@ -326,7 +360,10 @@ def write_metrics(
     architecture: str,
     base_channels: int,
 ) -> None:
-    fieldnames = ["region", "loss", "iou", "dice", "accuracy", "tp", "tn", "fp", "fn", "batches"]
+    fieldnames = [
+        "region", "loss", "iou", "dice", "accuracy", "precision", "recall",
+        "specificity", "fpr", "fnr", "tp", "tn", "fp", "fn", "batches",
+    ]
     with (output_dir / "metrics.csv").open("w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
@@ -336,14 +373,39 @@ def write_metrics(
         "checkpoint": str(args.checkpoint),
         "architecture": architecture,
         "base_channels": base_channels,
+        "input_scenario": args.input_scenario,
         "regions": args.regions,
         "threshold": args.threshold,
         "write_geotiff": args.write_geotiff,
         "save_predictions": not args.no_save_predictions,
         "water_river_as_flood": args.water_river_as_flood,
+        "max_batches": args.max_batches,
+        "complete": args.max_batches is None,
+        "tiles_processed_by_region": {
+            str(row["region"]): int(row["tiles_processed"])
+            for row in rows
+            if "tiles_processed" in row
+        },
         "metrics": [{key: row[key] for key in fieldnames} for row in rows],
     }
     (output_dir / "metrics.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+
+
+def write_s2_valid_only_metrics(output_dir: Path, summary: dict[str, float | int], args: argparse.Namespace) -> None:
+    row = {"region": "aggregate_s2_valid_only", **summary}
+    fieldnames = list(row)
+    with (output_dir / "metrics_s2_valid_only.csv").open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerow(row)
+    payload = {
+        "checkpoint": str(args.checkpoint),
+        "input_scenario": args.input_scenario,
+        "population": "effective_valid_mask & s2_valid_mask",
+        "threshold": args.threshold,
+        "metrics": row,
+    }
+    (output_dir / "metrics_s2_valid_only.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
 
 
 def _effective_valid_mask(batch: dict[str, Any], device: torch.device) -> torch.Tensor:

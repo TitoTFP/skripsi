@@ -1,0 +1,24 @@
+{
+  "model": "unet",
+  "input_scenario": "sentinel2",
+  "region": "Aceh_Utara",
+  "population": "effective_valid_mask & s2_valid_mask; unique mosaic pixels",
+  "threshold": 0.5,
+  "metrics": {
+    "model": "unet",
+    "population": "effective_valid_mask & s2_valid_mask",
+    "evaluated_unique_pixels": 20899915,
+    "iou": 0.2580234850803941,
+    "dice_f1": 0.4102045599950069,
+    "accuracy": 0.4063385903722575,
+    "precision": 0.2601557358441761,
+    "recall": 0.9692131720972359,
+    "specificity": 0.25399368840527325,
+    "fpr": 0.7460063115947267,
+    "fnr": 0.030786827902764158,
+    "tp": 4314718,
+    "tn": 4177724,
+    "fp": 12270417,
+    "fn": 137056
+  }
+}

@@ -1,0 +1,3 @@
+model,valid_pixels,label_positive_pixels,predicted_positive_pixels,tn,tp,fp,fn
+U-Net,262144,247132,234432,13715,233135,1297,13997
+ProCANet,262144,247132,235195,14619,234802,393,12330

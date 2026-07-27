@@ -1,0 +1,4 @@
+kondisi,wilayah,fold_oof,tile,piksel_kondisi,piksel_efektif,piksel_banjir
+Sentinel-2 kosong/hampir kosong,Aceh Tamiang,2,Aceh_Tamiang_r001024_c003840,262144,262144,147368
+Topografi sulit/kandidat radar shadow,Aceh Timur,2,Aceh_Timur_r011264_c002048,116892,262144,0
+Badan air permanen/sungai,Aceh Timur,2,Aceh_Timur_r005632_c007424,52707,190978,47934

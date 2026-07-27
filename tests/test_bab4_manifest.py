@@ -6,8 +6,8 @@ from bab4.artifacts import ALL_ARTIFACTS, REPORT_FIGURES, REPORT_TABLES
 
 class Bab4ManifestTests(unittest.TestCase):
     def test_report_artifact_counts_match_bab4_pdf_numbering(self):
-        self.assertEqual(len(REPORT_TABLES), 18)
-        self.assertEqual(len(REPORT_FIGURES), 17)
+        self.assertEqual(len(REPORT_TABLES), 20)
+        self.assertEqual(len(REPORT_FIGURES), 19)
 
     def test_artifact_ids_are_unique(self):
         ids = [spec.artifact_id for spec in ALL_ARTIFACTS]
@@ -41,6 +41,7 @@ class Bab4ManifestTests(unittest.TestCase):
             root / "bab4" / "sections" / "s4_4.py",
             root / "bab4" / "sections" / "s4_5_6.py",
             root / "bab4" / "sections" / "s4_7.py",
+            root / "bab4" / "sections" / "s4_8.py",
         ]
 
         for path in target_files:
